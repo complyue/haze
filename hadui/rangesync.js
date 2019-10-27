@@ -1,9 +1,9 @@
 /**
- * Synchronize a set of named ranges over the port.
+ * Synchronize a set of named ranges over the broadcast channel.
  */
 export default class RangeSync {
-  constructor(port, ranges, debug = false) {
-    this.port = port;
+  constructor(ch, ranges, debug = false) {
+    this.ch = ch;
     this.keys = [];
     this.ranges = [];
     let cntr = 0;
@@ -27,7 +27,7 @@ export default class RangeSync {
     this.synced = new Array(cntr);
     this.debug = !!debug;
 
-    port.onmessage = me => {
+    ch.onmessage = me => {
       for (const [key, upd] of me.data) {
         for (let i = 0; i < this.keys.length; i++) {
           if (key === this.keys[i]) {
@@ -76,7 +76,7 @@ export default class RangeSync {
         }
       }
       if (upds.length > 0) {
-        this.port.postMessage(upds);
+        this.ch.postMessage(upds);
       }
     }, 1000); // announce at most 1Hz
   }
