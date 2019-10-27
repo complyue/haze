@@ -1,0 +1,30 @@
+name: hadui-bokeh
+version: 0.1.0.0
+github: complyue/hadui-bokeh
+license: BSD3
+author: Compl Yue
+maintainer: compl.yue@icloud.com
+copyright: 2019 Compl Yue
+
+extra-source-files:
+  - README.md
+
+synopsis: interactive Haskell project with Bokeh plotting
+category: Visualization
+
+description: Please see the README on Github at <https://github.com/complyue/hadui-bokeh>
+
+dependencies:
+  - base
+  - rio
+
+  - hadui
+
+  - aeson
+  - aeson-qq
+
+ghc-options:
+  - -Wall
+
+library:
+  source-dirs: src
