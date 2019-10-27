@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+
+<head>
+  <title>hadui with Bokeh plotting</title>
+
+  <link rel="icon" type="image/png" href="/icons/bokeh-32x32.png" />
+
+  <link rel="stylesheet" type="text/css" href="/vendor/mui/mui.min.css" />
+  <script src="/vendor/jquery/jquery.js"></script>
+  <script src="/vendor/mui/mui.min.js"></script>
+
+  <!-- note: order of BokehJS imports does matter -->
+  <script src="/vendor/bokehjs/bokeh.js"></script>
+  <script src="/vendor/bokehjs/bokeh-widgets.js"></script>
+  <script src="/vendor/bokehjs/bokeh-tables.js"></script>
+  <script src="/vendor/bokehjs/bokeh-gl.js"></script>
+  <script src="/vendor/bokehjs/bokeh-api.js"></script>
+
+  <script type="module">
+    import { withHadui } from "/hadui.js";
+  </script>
+</head>
+
+<body>
+  <!-- main plot here -->
+
+  <script>
+    // arrays to hold data
+    var source = new Bokeh.ColumnDataSource({
+      data: { x: [], y: [] }
+    });
+
+    // make the plot and add some tools
+    var tools = "pan,crosshair,wheel_zoom,box_zoom,reset,save";
+
+    var plot = Bokeh.Plotting.figure({
+      title: "Example of Random data",
+      tools: tools,
+      height: 300,
+      width: 300
+    });
+
+    var scatterData = plot.line(
+      { field: "x" },
+      { field: "y" },
+      {
+        source: source,
+        line_width: 2
+      }
+    );
+
+    // Show the plot, appending it to the end of the current
+    // section of the document we are in.
+    Bokeh.Plotting.show(plot);
+
+    function addPoint() {
+      // The data can be added, but generally all fields must be the
+      // same length.
+      source.data.x.push(Math.random());
+      source.data.y.push(Math.random());
+      // Also, the DataSource object must be notified when it has changed.
+      source.change.emit();
+    }
+
+    var addDataButton = document.createElement("Button");
+    addDataButton.appendChild(document.createTextNode("Add Some Data!!!"));
+    document.currentScript.parentElement.appendChild(addDataButton);
+    addDataButton.addEventListener("click", addPoint);
+  </script>
+</body>
