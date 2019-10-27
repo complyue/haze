@@ -1,0 +1,33 @@
+resolver: lts-14.11
+
+packages:
+  - bokeh
+
+extra-deps:
+  # to use the version of hadui checked out locally
+  - ../hadui/hadui
+
+  # to use a version of hadui from github
+  # - github: complyue/hadui
+  #   commit: stable
+  #   subdirs:
+  #     - hadui
+
+compiler-check: match-exact
+
+# CAVEATS
+#
+#   binary distributions referenced following have NO support, checkout:
+#
+# https://gitlab.haskell.org/complyue/ghc-ife-bindist/blob/master/README.md
+
+ghc-variant: ife
+
+setup-info:
+  ghc:
+    macosx-custom-ife:
+      8.6.5:
+        url: "https://gitlab.haskell.org/complyue/ghc-ife-bindist/raw/master/ghc-8.6.5-x86_64-apple-darwin.tar.bz2"
+    linux64-custom-ife:
+      8.6.5:
+        url: "https://gitlab.haskell.org/complyue/ghc-ife-bindist/raw/master/ghc-8.6.5-x86_64-unknown-linux.tar.xz"

@@ -1,0 +1,84 @@
+# !CAVEATS!
+#
+# This is by far a serious SECURITY VULNERABILITY
+#
+# By serving hadui ws with no authentication,
+# an arbitrary code execution exploit is created
+# on the computer. This is less threatening in an
+# trusted close (like typical HPC) environment,
+# but as it being. When more people start using hadui,
+# this exploit will become more profitable for hostile
+# attackers, after some threshold, there should be
+# someone to implement some sort of ws authentication
+# as a solution. wss client certificate may be a
+# reasonable choice.
+
+# this cfg file 'hadui.yaml' is located by hadui besides
+# the nearest 'stack.yaml' up from cwd you run hadui.
+# it uses `stack path --project-root` to locate the dir.
+
+# by default, only the local interface is bound to listen
+# for hadui ws connections, this hardens the arbitrary
+# code execution vulnerability a bit. but for you or your
+# collegues to access hadui web front from other machines,
+# bind to one of the external interfaces, or simply all
+# interfaces by specifying '0.0.0.0'.
+bind-interface: 0.0.0.0
+http-port: 5050
+ws-port: 5051
+
+# backend log level
+log-level: DEBUG
+
+# additional options passed to GHCi
+ghci-options:
+  # max history in trace, GHCi defaults to 50
+  - -fghci-hist-size=300
+
+  # run project code compiled, instead of interpreted, for performance
+  # but you won't get source locations for uncaught errors at runtime
+  #- -fobject-code
+
+# additional options passed to both GHC and GHCi
+ghc-options:
+  # language extensions to use, recommended by rio
+  #     https://github.com/commercialhaskell/rio/#language-extensions
+  - -XAutoDeriveTypeable
+  - -XBangPatterns
+  - -XBinaryLiterals
+  - -XConstraintKinds
+  - -XDataKinds
+  - -XDefaultSignatures
+  - -XDeriveDataTypeable
+  - -XDeriveFoldable
+  - -XDeriveFunctor
+  - -XDeriveGeneric
+  - -XDeriveTraversable
+  - -XDoAndIfThenElse
+  - -XEmptyDataDecls
+  - -XExistentialQuantification
+  - -XFlexibleContexts
+  - -XFlexibleInstances
+  - -XFunctionalDependencies
+  - -XGADTs
+  - -XGeneralizedNewtypeDeriving
+  - -XInstanceSigs
+  - -XKindSignatures
+  - -XLambdaCase
+  - -XMonadFailDesugaring
+  - -XMultiParamTypeClasses
+  - -XMultiWayIf
+  - -XNamedFieldPuns
+  - -XNoImplicitPrelude
+  - -XOverloadedStrings
+  - -XPartialTypeSignatures
+  - -XPatternGuards
+  - -XPolyKinds
+  - -XRankNTypes
+  - -XRecordWildCards
+  - -XScopedTypeVariables
+  - -XStandaloneDeriving
+  - -XTupleSections
+  - -XTypeFamilies
+  - -XTypeSynonymInstances
+  - -XViewPatterns
