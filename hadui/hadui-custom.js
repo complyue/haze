@@ -2,7 +2,7 @@
  * hadui-custom.js
  */
 
-import WSC from "/wsc.js";
+import { BokehWSC } from "/bokeh-ctrl.js";
 
 export const HaduiDefaultStmt =
   // the statement shown initially
@@ -12,6 +12,6 @@ export const HaduiDefaultStmt =
   showBokehPage "bokeh-poc"
 `;
 
-export class HaduiWSC extends WSC {
+export class HaduiWSC extends BokehWSC {
   // implement ws methods here
 }
