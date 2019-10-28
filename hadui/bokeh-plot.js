@@ -2,7 +2,7 @@
  * bokeh-plot.js
  */
 
-opener.onmessage = function(me) {
+window.onmessage = function(me) {
   if (opener !== me.source) {
     console.error("window msg from other than opener ?!", me.source);
     debugger;
