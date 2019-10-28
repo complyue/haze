@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "presentation": {
+        "reveal": "always",
+        "panel": "new"
+    },
+    "tasks": [
+        {
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "label": "hadui-dev",
+            "type": "shell",
+            "command": "cd ${workspaceRoot}; stack build --exec hadui-dev",
+            "problemMatcher": []
+        }
+    ]
+}
