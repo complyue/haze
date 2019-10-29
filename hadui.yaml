@@ -30,6 +30,11 @@ ws-port: 5051
 # backend log level
 log-level: DEBUG
 
+# have hadui resources from these packages served by Hadui http
+# order matters in this list, former means higher precedence
+overlay:
+  - haze
+
 # additional options passed to GHCi
 ghci-options:
   # max history in trace, GHCi defaults to 50
