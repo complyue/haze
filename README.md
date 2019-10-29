@@ -13,5 +13,5 @@ pursued by both Bokeh (written in _TypeScript_ at the core) and Haskell,
 for this stage.
 
 It may possibly become a full-fledged, strongly typed
-[Haskell](https://www.haskell.org/) binding of [Bokeh](https://bokeh.org
+[Haskell](https://www.haskell.org/) binding of [Bokeh](https://bokeh.org)
 ultimately, but however not for certain sure right now.
