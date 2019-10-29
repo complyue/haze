@@ -1,5 +1,5 @@
 /**
- * bokeh-plot.js
+ * haze-plot.js
  */
 
 window.onmessage = function(me) {

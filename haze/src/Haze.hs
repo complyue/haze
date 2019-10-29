@@ -3,7 +3,7 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Bokeh where
+module Haze where
 
 import           UIO
 
@@ -12,18 +12,18 @@ import           Data.Aeson.QQ                  ( aesonQQ )
 default (Text, Int)
 
 
-showBokehPage :: Text -> UIO ()
-showBokehPage target = do
+showHazePage :: Text -> UIO ()
+showHazePage target = do
     -- log to front UI
-    print "Showing bokeh page from Haskell code ..."
+    print "Showing haze page from Haskell code ..."
 
     -- log to backend
-    logInfo $ display $ "Showing bokeh page in window " <> target
+    logInfo $ display $ "Showing haze page in window " <> target
 
     -- do the trick
     uiComm [aesonQQ|{
 "type": "call"
 , "name": "openWindow"
-, "args": ["bokeh.html", #{target}]
+, "args": ["haze.html", #{target}]
 }|]
 

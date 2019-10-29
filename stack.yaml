@@ -1,7 +1,7 @@
 resolver: lts-14.11
 
 packages:
-  - bokeh
+  - haze
 
 extra-deps:
   # to use the version of hadui checked out locally

@@ -2,16 +2,16 @@
  * hadui-custom.js
  */
 
-import { BokehWSC } from "/bokeh-ctrl.js";
+import { HazeWSC } from "/haze.js";
 
 export const HaduiDefaultStmt =
   // the statement shown initially
   `do
   print "Bokeh rocks!"
 
-  showBokehPage "bokeh-poc"
+  showHazePage "bokeh-poc"
 `;
 
-export class HaduiWSC extends BokehWSC {
+export class HaduiWSC extends HazeWSC {
   // implement ws methods here
 }

@@ -1,6 +1,6 @@
-name: hadui-bokeh
+name: haze
 version: 0.1.0.0
-github: complyue/hadui-bokeh
+github: complyue/haze
 license: BSD3
 author: Compl Yue
 maintainer: compl.yue@icloud.com
@@ -9,10 +9,10 @@ copyright: 2019 Compl Yue
 extra-source-files:
   - README.md
 
-synopsis: interactive Haskell project with Bokeh plotting
+synopsis: interactive Haskell stack project with Bokeh plotting
 category: Visualization
 
-description: Please see the README on Github at <https://github.com/complyue/hadui-bokeh>
+description: Please see the README on Github at <https://github.com/complyue/haze>
 
 dependencies:
   - base
@@ -20,6 +20,7 @@ dependencies:
 
   - hadui
 
+  - containers
   - aeson
   - aeson-qq
 
