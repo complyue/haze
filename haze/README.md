@@ -1,1 +1,1 @@
-# Haze - interactive Bokeh plotting for Haskell stack project
+# Haze - Bokeh visualization for interactive stack project
