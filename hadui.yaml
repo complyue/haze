@@ -2,25 +2,25 @@
 #
 # This is by far a serious SECURITY VULNERABILITY
 #
-# By serving hadui ws with no authentication,
+# By serving Hadui ws with no authentication,
 # an arbitrary code execution exploit is created
 # on the computer. This is less threatening in an
 # trusted close (like typical HPC) environment,
-# but as it being. When more people start using hadui,
+# but as it being. When more people start using Hadui,
 # this exploit will become more profitable for hostile
 # attackers, after some threshold, there should be
 # someone to implement some sort of ws authentication
 # as a solution. wss client certificate may be a
 # reasonable choice.
 
-# this cfg file 'hadui.yaml' is located by hadui besides
-# the nearest 'stack.yaml' up from cwd you run hadui.
+# this cfg file 'hadui.yaml' is located by Hadui besides
+# the nearest 'stack.yaml' up from cwd you run Hadui.
 # it uses `stack path --project-root` to locate the dir.
 
 # by default, only the local interface is bound to listen
-# for hadui ws connections, this hardens the arbitrary
+# for Hadui ws connections, this hardens the arbitrary
 # code execution vulnerability a bit. but for you or your
-# collegues to access hadui web front from other machines,
+# collegues to access Hadui web front from other machines,
 # bind to one of the external interfaces, or simply all
 # interfaces by specifying '0.0.0.0'.
 bind-interface: 0.0.0.0
