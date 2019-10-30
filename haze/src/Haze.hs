@@ -57,7 +57,7 @@ drawGlyph pf glType = do
 
     liftIO $ modifyIORef (glyphSetup pf) $ (:) [text|
 ${glType}()
-        |text]
+|]
 
 
 showHazePage :: Text -> UIO ()
