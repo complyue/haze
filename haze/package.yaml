@@ -26,6 +26,7 @@ dependencies:
   - containers
   - aeson
   - aeson-qq
+  - neat-interpolation
 
 ghc-options:
   - -Wall

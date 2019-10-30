@@ -7,8 +7,6 @@ module PlotCtx where
 
 import           RIO
 
-import qualified Data.Map                      as Map
-
 
 -- |
 data LinkedAxis = LinkedAxis {
@@ -26,23 +24,28 @@ data NarrTimeline = NarrTimeline {
 -- | a group has a single narrative timeline, and defines
 -- a set of named axes to be linked in pan/zoom
 data PlotGroup = PlotGroup {
-    narrTimeline :: NarrTimeline
-    , axes :: Map Text LinkedAxis
+    plotGrpId :: Text
+    , narrTimeline :: NarrTimeline
+    , axes :: IORef (Map Text LinkedAxis)
 }
 
 
 data PlotWindow = PlotWindow {
-    -- | `target` wrt openWindow in js
-    webTarget :: Text
+    -- | `target` wrt openWindow in js, where `_blank` will
+    -- always open new window
+    webWindowRef :: Text
     -- | id of group to have all x-axis/y-axis sync'ed
-    , syncGroup :: Text
+    , plotGroup :: PlotGroup
 }
 
 
 data PlotFigure = PlotFigure {
-    figureTitle :: Text
-    , figureTools :: [Text]
-    , figureSetup :: [Text]
+    plotWindow :: PlotWindow
+    , figureTitle :: IORef Text
+    , figureTools :: IORef [Text]
+    , figureSetup :: IORef [Text]
+    , glyphSetup  :: IORef [Text]
+    , legendSetup :: IORef [Text]
 }
 
 
