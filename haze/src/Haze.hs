@@ -39,11 +39,11 @@ withPlotWindow pg wRef winPlot = do
 
 withPlotFigure :: PlotWindow -> (PlotFigure -> UIO ()) -> UIO ()
 withPlotFigure pw figPlot = do
-    figureTitle <- liftIO $ newIORef "Haze Plot"
-    (figureTools', figureSetup', glyphSetup', legendSetup') <- liftIO
+    figureTitle' <- liftIO $ newIORef "Haze Plot"
+    [figureTools', figureSetup', glyphSetup', legendSetup'] <- liftIO
         $ mapM newIORef [["zoom", "pan", "crosshair"], [], [], []]
     let pf = PlotFigure { plotWindow  = pw
-                        , figureTitle = "Haze Plot"
+                        , figureTitle = figureTitle'
                         , figureTools = figureTools'
                         , figureSetup = figureSetup'
                         , glyphSetup  = glyphSetup'
