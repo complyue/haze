@@ -12,10 +12,6 @@
 import           UIO
 import           Haze
 
-import qualified Data.Vector.Fusion.Bundle     as VG
-import qualified Data.Vector.Generic.New       as VG
-
-import qualified Data.Aeson                    as A
 
 default (Text, Int, Double)
 
@@ -28,9 +24,9 @@ ppoc = do
 
         w1   <- openPlotWindow pg "w1"
 
-        x    <- VG.runPrim $ VG.unstream $ VG.generate n fromIntegral
-        ySin <- VG.runPrim $ VG.unstream $ VG.generate n $ sin . fromIntegral
-        yCos <- VG.runPrim $ VG.unstream $ VG.generate n $ sin . fromIntegral
+        x    <- generateSeries n fromIntegral
+        ySin <- generateSeries n $ sin . fromIntegral
+        yCos <- generateSeries n $ sin . fromIntegral
         ds   <- putDataSource w1 [("x", x), ("sin", ySin), ("cos", yCos)]
 
         f1   <- addPlotFigure
@@ -45,7 +41,7 @@ ppoc = do
             , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , ( ["xgrid", "major_label_overrides"]
-              , LiteralValue $ (A.String . ("Pt#" <>) . tshow) <$> [1 .. n]
+              , LiteralValue $ (("Pt#" <>) . tshow) <$> [1 .. n]
               )
             ]
 
@@ -71,7 +67,7 @@ ppoc = do
             , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , ( ["xgrid", "major_label_overrides"]
-              , LiteralValue $ (A.String . ("Pt#" <>) . tshow) <$> [1 .. n]
+              , LiteralValue $ (("Pt#" <>) . tshow) <$> [1 .. n]
               )
             ]
 

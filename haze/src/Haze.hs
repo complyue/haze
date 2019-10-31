@@ -12,21 +12,36 @@ module Haze where
 import           UIO
 import           HaduiUtil
 
+import qualified RIO.Text                      as T
+import           Text.Printf
+
 import qualified RIO.Vector.Storable           as VS
+import qualified Data.Vector.Storable.Mutable  as VM
+import qualified Data.Vector.Fusion.Bundle     as VG
+import qualified Data.Vector.Generic.New       as VG
 
 import qualified Data.Map                      as Map
 
-import           NeatInterpolation
-
 import qualified Data.Aeson                    as A
 import           Data.Aeson.QQ                  ( aesonQQ )
+
+import           NeatInterpolation
 
 default (Text, Int)
 
 
 type ColumnDataSource = Map ColumnName ColumnData
 type ColumnName = Text
+-- | float64 is used uniformly for column data for now,
+-- tho BokehJS can support more types, let's keep it simple.
+-- note js within any browser inherently has no support of int64, 
+-- float32/int32/int16/int8 worth to be added beyond just float64?
 type ColumnData = VS.MVector (PrimState IO) Double
+
+
+generateSeries :: Int -> (Int -> Double) -> UIO ColumnData
+generateSeries n g = VG.runPrim $ VG.unstream $ VG.generate n g
+
 
 type ArgName = Text
 type CtorName = Text
@@ -35,12 +50,14 @@ type AttrName = Text
 type RangeName = Text
 type AxisRef = Int
 
+-- | define the value to be passed to BokehJS at js site
 data BokehValue where
+-- | will be converted to 'A.Value' before passed to js
     LiteralValue ::A.ToJSON a => a -> BokehValue
 -- | reference a column from associated ColumnDataSource, in form of:
---   `{field: 'nnn'}`
+--   `{field: 'ccc'}`
     DataField ::ColumnName -> BokehValue
--- | some bokehjs methods works better with arg value in form of:
+-- | some BokehJS methods work better with arg value in form of:
 --   `{value: vvv}`
     DataValue ::A.ToJSON a => a -> BokehValue
 -- | call a constructor at js site to create the value, in form of:
@@ -60,8 +77,8 @@ type GroupId = Text
 
 -- | a window mapped to a browser window (tab actually nowadays)
 data PlotWindow =  PlotWindow {
-    plotWinId :: WindowId
-    , plotGroup :: PlotGroup
+    plotGroup :: PlotGroup
+    , plotWinId :: WindowId
     , dsInWindow :: BDeque (PrimState IO) ColumnDataSource
     , figuresInWindow :: IORef [PlotFigure]
 }
@@ -81,8 +98,8 @@ openPlotWindow :: PlotGroup -> WindowId -> UIO PlotWindow
 openPlotWindow pg winId = do
     dsiw <- newDeque
     pfs  <- newIORef []
-    let pw = PlotWindow { plotWinId       = winId
-                        , plotGroup       = pg
+    let pw = PlotWindow { plotGroup       = pg
+                        , plotWinId       = winId
                         , dsInWindow      = dsiw
                         , figuresInWindow = pfs
                         }
@@ -99,9 +116,6 @@ putDataSource pw cds = do
     pushBackDeque dsiw $ Map.fromList cds
     return dsr
 
--- todo other types of array element to support ?
--- note js within any browser inherently has no support of int64, 
--- int32/int16/int8 worth to be added beyond float64 ?
 type DataSourceRef = Int
 
 
@@ -162,7 +176,7 @@ defineAxis pg = atomicModifyIORef' (numOfLinkedAxes pg) $ \i -> (i + 1, i)
 
 
 showPlot :: GroupId -> (PlotGroup -> UIO ()) -> UIO ()
-showPlot grpId grpPlot =
+showPlot grpId plotProcedure =
     (ask >>= \uio ->
         let gil = haduiGIL uio
         in
@@ -177,22 +191,51 @@ showPlot grpId grpPlot =
   where
     plotViaWS wsc = do
 
-        nla <- newIORef 0
-        pws <- newIORef []
+        nla_ <- newIORef 0
+        pws_ <- newIORef []
         let pg = PlotGroup { plotGrpId       = grpId
-                           , numOfLinkedAxes = nla
-                           , windowsInGroup  = pws
+                           , numOfLinkedAxes = nla_
+                           , windowsInGroup  = pws_
                            }
 
-        grpPlot pg
+        plotProcedure pg
 
+        !totalDataSize <- newIORef (0.0 :: Double)
+
+        readIORef (windowsInGroup pg) >>= \pws -> for_ pws $ \pw -> do
+            let
+                sendCDS cds = do
+                    for_ (Map.elems cds)
+                        $ \cd -> modifyIORef'
+                              totalDataSize
+                              ((+) $ fromIntegral $ VM.length cd)
+                            --  liftIO $ wsSendData wsc cd
+            foldlDeque (const sendCDS) () (dsInWindow pw)
+
+        -- TODO cont. here
+
+        tds <- readIORef totalDataSize
+        let msg =
+                "plotting data size: "
+                    <> (T.pack $ printf "%0.1f" (tds / 1024 / 1024))
+                    <> " MB"
+        liftIO $ wsSendText
+            wsc
+            [aesonQQ|{
+"type": "msg"
+, "msgText": #{msg}
+}|]
+
+        let plotCode = [text|
+console.log('here it is!')
+|]
         -- send json cmds and binary column data to UI
         liftIO $ wsSendText
             wsc
             [aesonQQ|{
 "type": "call"
-, "name": "xxx"
-, "args": []
+, "name": "plot"
+, "args": [#{plotCode}]
 }|]
 
 
