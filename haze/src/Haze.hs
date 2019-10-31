@@ -130,34 +130,30 @@ type MethodName = Text
 type ArgName = Text
 type AttrName = Text
 
-data BokehValue a where
-    LiteralValue ::A.ToJSON a => a -> BokehValue A.Value
+data BokehValue where
+    LiteralValue ::A.ToJSON a => a -> BokehValue
 -- | reference a column from associated ColumnDataSource, in form of:
 --   `{field: 'nnn'}`
-    DataField ::ColumnName -> BokehValue A.Value
+    DataField ::ColumnName -> BokehValue
 -- | some bokehjs methods works better with arg value in form of:
 --   `{value: vvv}`
-    DataValue ::A.ToJSON a => a -> BokehValue A.Value
+    DataValue ::A.ToJSON a => a -> BokehValue
 -- | call a constructor at js site to create the value, in form of:
 --   `new Bokeh.Ccc({kkk: vvv, ...})`
-    NewBokehObj ::CtorName -> (Map ArgName (BokehValue A.Value)) -> BokehValue A.Value
+    NewBokehObj ::CtorName -> (Map ArgName (BokehValue)) -> BokehValue
 
-newBokehObj :: CtorName -> [(ArgName, BokehValue A.Value)] -> BokehValue A.Value
+newBokehObj :: CtorName -> [(ArgName, BokehValue)] -> BokehValue
 newBokehObj ctor args = NewBokehObj ctor $ Map.fromList args
 
-data FigureOp =   SetFigAttrs [([AttrName], BokehValue A.Value)]
-    | AddGlyph MethodName DataSourceRef (Map ArgName (BokehValue A.Value))
-    | AddLayout CtorName (Map ArgName (BokehValue A.Value))
-    | SetGlyphAttrs CtorName [([AttrName], BokehValue A.Value)]
+data FigureOp =   SetFigAttrs [([AttrName], BokehValue)]
+    | AddGlyph MethodName DataSourceRef (Map ArgName (BokehValue))
+    | AddLayout CtorName (Map ArgName (BokehValue))
+    | SetGlyphAttrs CtorName [([AttrName], BokehValue)]
 
-addGlyph
-    :: MethodName
-    -> DataSourceRef
-    -> [(ArgName, BokehValue A.Value)]
-    -> FigureOp
+addGlyph :: MethodName -> DataSourceRef -> [(ArgName, BokehValue)] -> FigureOp
 addGlyph mth ds args = AddGlyph mth ds $ Map.fromList args
 
-addLayout :: CtorName -> [(ArgName, BokehValue A.Value)] -> FigureOp
+addLayout :: CtorName -> [(ArgName, BokehValue)] -> FigureOp
 addLayout ctor args = AddLayout ctor $ Map.fromList args
 
 infixr 0 $@ -- be infixr so can work together with ($)
