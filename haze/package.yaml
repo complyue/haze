@@ -23,9 +23,12 @@ dependencies:
 
   - hadui
 
+  - bytestring
+  - vector
   - containers
   - aeson
   - aeson-qq
+  - websockets
   - neat-interpolation
 
 ghc-options:

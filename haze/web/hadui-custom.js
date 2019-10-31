@@ -9,7 +9,6 @@ export const HaduiDefaultStmt =
   `do
   print "Bokeh rocks!"
 
-  showHazePage "bokeh-poc"
 `;
 
 export class HaduiWSC extends HazeWSC {

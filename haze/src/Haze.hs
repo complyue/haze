@@ -3,13 +3,16 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE GADTs #-}
 
 module Haze where
 
 import           UIO
 
 import qualified RIO.Vector                    as V
+import qualified RIO.Vector.Storable           as VS
 
 import qualified Data.Map                      as Map
 
@@ -18,7 +21,9 @@ import           NeatInterpolation
 import qualified Data.Aeson                    as A
 import           Data.Aeson.QQ                  ( aesonQQ )
 
-import           PlotCtx
+import qualified Network.WebSockets            as WS
+
+import           Haze.Util
 
 default (Text, Int)
 
@@ -46,9 +51,9 @@ putDataSource pw cds = do
     return dsr
 
 
-addPlotFigure :: PlotWindow -> (Map ArgName A.Value) -> UIO PlotFigure
+addPlotFigure :: PlotWindow -> [(ArgName, A.Value)] -> UIO PlotFigure
 addPlotFigure pw figArgs = do
-    figureArgs' <- newIORef figArgs
+    figureArgs' <- newIORef $ Map.fromList figArgs
     figureOps'  <- newIORef []
     linkedAxes' <- newIORef Map.empty
     let pf = PlotFigure { plotWindow = pw
@@ -77,44 +82,135 @@ addPlotFigure pw figArgs = do
     return pf
 
 
-onFigure :: PlotFigure -> FigureOp -> UIO ()
-onFigure pf op = modifyIORef' (figureOps pf) $ (:) op
+type AxisRef = Int
+
+
+type GroupId = Text
+-- | a group has a single narrative timeline, and defines
+-- a set of named axes to be linked in pan/zoom
+data PlotGroup = PlotGroup {
+    plotGrpId :: GroupId
+    , numOfLinkedAxes :: IORef Int
+    , windowsInGroup :: IORef [PlotWindow]
+}
+
+
+type WindowId = Text
+-- | a window mapped to a browser window (tab actually nowadays)
+data PlotWindow =  PlotWindow {
+    plotWinId :: WindowId
+    , plotGroup :: PlotGroup
+    , dsInWindow :: BDeque (PrimState IO) ColumnDataSource
+    , figuresInWindow :: IORef [PlotFigure]
+}
+
+
+type ColumnName = Text
+type ColumnData = VS.MVector (PrimState IO) Double
+-- todo other types of array element to support ?
+-- note js within any browser inherently has no support of int64, 
+-- int32/int16/int8 worth to be added beyond float64 ?
+type ColumnDataSource = Map ColumnName ColumnData
+
+type DataSourceRef = Int
+
+
+type RangeName = Text
+-- | a figure with glyphs and layout elements
+data PlotFigure = PlotFigure {
+    plotWindow :: PlotWindow
+    , figureArgs :: IORef (Map ArgName A.Value)
+    , figureOps  :: IORef [FigureOp]
+    , linkedAxes :: IORef (Map RangeName AxisRef)
+}
+
+
+type CtorName = Text
+type MethodName = Text
+type ArgName = Text
+type AttrName = Text
+
+data BokehValue a where
+    LiteralValue ::A.ToJSON a => a -> BokehValue A.Value
+-- | reference a column from associated ColumnDataSource, in form of:
+--   `{field: 'nnn'}`
+    DataField ::ColumnName -> BokehValue A.Value
+-- | some bokehjs methods works better with arg value in form of:
+--   `{value: vvv}`
+    DataValue ::A.ToJSON a => a -> BokehValue A.Value
+-- | call a constructor at js site to create the value, in form of:
+--   `new Bokeh.Ccc({kkk: vvv, ...})`
+    NewBokehObj ::CtorName -> (Map ArgName (BokehValue A.Value)) -> BokehValue A.Value
+
+newBokehObj :: CtorName -> [(ArgName, BokehValue A.Value)] -> BokehValue A.Value
+newBokehObj ctor args = NewBokehObj ctor $ Map.fromList args
+
+data FigureOp =   SetFigAttrs [([AttrName], BokehValue A.Value)]
+    | AddGlyph MethodName DataSourceRef (Map ArgName (BokehValue A.Value))
+    | AddLayout CtorName (Map ArgName (BokehValue A.Value))
+    | SetGlyphAttrs CtorName [([AttrName], BokehValue A.Value)]
+
+addGlyph
+    :: MethodName
+    -> DataSourceRef
+    -> [(ArgName, BokehValue A.Value)]
+    -> FigureOp
+addGlyph mth ds args = AddGlyph mth ds $ Map.fromList args
+
+addLayout :: CtorName -> [(ArgName, BokehValue A.Value)] -> FigureOp
+addLayout ctor args = AddLayout ctor $ Map.fromList args
+
+infixr 0 $@ -- be infixr so can work together with ($)
+-- | perform op on a figure
+($@) :: PlotFigure -> FigureOp -> UIO ()
+pf $@ op = modifyIORef' (figureOps pf) $ (:) op
 
 
 linkAxis :: PlotFigure -> RangeName -> AxisRef -> UIO ()
 linkAxis pf rng axis = modifyIORef' (linkedAxes pf) $ Map.insert rng axis
 
+linkAxes :: PlotGroup -> [(PlotFigure, RangeName)] -> UIO AxisRef
+linkAxes pg prs = do
+    axis <- defineAxis pg
+    for_ prs $ \(pf, rng) -> linkAxis pf rng axis
+    return axis
 
 defineAxis :: PlotGroup -> UIO AxisRef
 defineAxis pg = atomicModifyIORef' (numOfLinkedAxes pg) $ \i -> (i + 1, i)
 
 
 showPlot :: GroupId -> (PlotGroup -> UIO ()) -> UIO ()
-showPlot grpId grpPlot = do
-    nla <- newIORef 0
-    pws <- newIORef []
-    let pg = PlotGroup { plotGrpId       = grpId
-                       , numOfLinkedAxes = nla
-                       , windowsInGroup  = pws
-                       }
+showPlot grpId grpPlot =
+    (ask >>= \uio ->
+        let gil = haduiGIL uio
+        in
+            isEmptyMVar gil >>= \case
+                True ->
+                    logError
+                        $  display
+                        $  "No ws in context to plot group "
+                        <> grpId
+                False -> readMVar gil >>= plotViaWS
+    )
+  where
+    plotViaWS wsc = do
 
-    grpPlot pg
+        nla <- newIORef 0
+        pws <- newIORef []
+        let pg = PlotGroup { plotGrpId       = grpId
+                           , numOfLinkedAxes = nla
+                           , windowsInGroup  = pws
+                           }
 
-    -- TODO send json cmds out
+        grpPlot pg
 
-
-showHazePage :: Text -> UIO ()
-showHazePage target = do
-    -- log to front UI
-    print "Showing haze page from Haskell code ..."
-
-    -- log to backend
-    logInfo $ display $ "Showing haze page in window " <> target
-
-    -- do the trick
-    uiComm [aesonQQ|{
+        -- send json cmds and binary column data to UI
+        liftIO $ wsSendText
+            wsc
+            [aesonQQ|{
 "type": "call"
-, "name": "openWindow"
-, "args": ["haze.html", #{target}]
+, "name": "xxx"
+, "args": []
 }|]
+
 
