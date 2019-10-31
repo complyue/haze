@@ -10,6 +10,7 @@
 module Haze where
 
 import           UIO
+import           HaduiUtil
 
 import qualified RIO.Vector                    as V
 import qualified RIO.Vector.Storable           as VS
@@ -23,7 +24,6 @@ import           Data.Aeson.QQ                  ( aesonQQ )
 
 import qualified Network.WebSockets            as WS
 
-import           Haze.Util
 
 default (Text, Int)
 
