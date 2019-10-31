@@ -81,8 +81,8 @@ onFigure :: PlotFigure -> FigureOp -> UIO ()
 onFigure pf op = modifyIORef' (figureOps pf) $ (:) op
 
 
-linkAxis :: PlotFigure -> AxisField -> AxisRef -> UIO ()
-linkAxis pf field axis = modifyIORef' (linkedAxes pf) $ Map.insert field axis
+linkAxis :: PlotFigure -> RangeName -> AxisRef -> UIO ()
+linkAxis pf rng axis = modifyIORef' (linkedAxes pf) $ Map.insert rng axis
 
 
 defineAxis :: PlotGroup -> UIO AxisRef

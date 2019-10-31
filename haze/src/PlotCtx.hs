@@ -53,12 +53,12 @@ data FigureOp = FigureCall MethodName (Maybe DataSourceRef) (Map ArgName ArgValu
     | FigureMod MethodName A.Value
 
 
-type AxisField = Text
+type RangeName = Text
 -- | a figure with glyphs and layout elements
 data PlotFigure = PlotFigure {
     plotWindow :: PlotWindow
     , figureArgs :: IORef (Map ArgName A.Value)
     , figureOps  :: IORef [FigureOp]
-    , linkedAxes :: IORef (Map AxisField AxisRef)
+    , linkedAxes :: IORef (Map RangeName AxisRef)
 }
 
