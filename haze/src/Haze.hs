@@ -12,7 +12,6 @@ module Haze where
 import           UIO
 import           HaduiUtil
 
-import qualified RIO.Vector                    as V
 import qualified RIO.Vector.Storable           as VS
 
 import qualified Data.Map                      as Map
@@ -22,10 +21,60 @@ import           NeatInterpolation
 import qualified Data.Aeson                    as A
 import           Data.Aeson.QQ                  ( aesonQQ )
 
-import qualified Network.WebSockets            as WS
-
-
 default (Text, Int)
+
+
+type ColumnDataSource = Map ColumnName ColumnData
+type ColumnName = Text
+type ColumnData = VS.MVector (PrimState IO) Double
+
+type ArgName = Text
+type CtorName = Text
+type MethodName = Text
+type AttrName = Text
+type RangeName = Text
+type AxisRef = Int
+
+data BokehValue where
+    LiteralValue ::A.ToJSON a => a -> BokehValue
+-- | reference a column from associated ColumnDataSource, in form of:
+--   `{field: 'nnn'}`
+    DataField ::ColumnName -> BokehValue
+-- | some bokehjs methods works better with arg value in form of:
+--   `{value: vvv}`
+    DataValue ::A.ToJSON a => a -> BokehValue
+-- | call a constructor at js site to create the value, in form of:
+--   `new Bokeh.Ccc({kkk: vvv, ...})`
+    NewBokehObj ::CtorName -> [(ArgName, BokehValue)] -> BokehValue
+
+
+-- | a group has a single narrative timeline, and defines
+-- a set of named axes to be linked in pan/zoom
+data PlotGroup = PlotGroup {
+    plotGrpId :: GroupId
+    , numOfLinkedAxes :: IORef Int
+    , windowsInGroup :: IORef [PlotWindow]
+}
+type GroupId = Text
+
+
+-- | a window mapped to a browser window (tab actually nowadays)
+data PlotWindow =  PlotWindow {
+    plotWinId :: WindowId
+    , plotGroup :: PlotGroup
+    , dsInWindow :: BDeque (PrimState IO) ColumnDataSource
+    , figuresInWindow :: IORef [PlotFigure]
+}
+type WindowId = Text
+
+
+-- | a figure with glyphs and layout elements
+data PlotFigure = PlotFigure {
+    plotWindow :: PlotWindow
+    , figureArgs :: IORef (Map ArgName BokehValue)
+    , figureOps  :: IORef [FigureOp]
+    , linkedAxes :: IORef (Map RangeName AxisRef)
+}
 
 
 openPlotWindow :: PlotGroup -> WindowId -> UIO PlotWindow
@@ -43,15 +92,20 @@ openPlotWindow pg winId = do
     return pw
 
 
-putDataSource :: PlotWindow -> ColumnDataSource -> UIO DataSourceRef
+putDataSource :: PlotWindow -> [(ColumnName, ColumnData)] -> UIO DataSourceRef
 putDataSource pw cds = do
     let !dsiw = dsInWindow pw
     dsr <- getDequeSize dsiw
-    pushBackDeque dsiw cds
+    pushBackDeque dsiw $ Map.fromList cds
     return dsr
 
+-- todo other types of array element to support ?
+-- note js within any browser inherently has no support of int64, 
+-- int32/int16/int8 worth to be added beyond float64 ?
+type DataSourceRef = Int
 
-addPlotFigure :: PlotWindow -> [(ArgName, A.Value)] -> UIO PlotFigure
+
+addPlotFigure :: PlotWindow -> [(ArgName, BokehValue)] -> UIO PlotFigure
 addPlotFigure pw figArgs = do
     figureArgs' <- newIORef $ Map.fromList figArgs
     figureOps'  <- newIORef []
@@ -63,8 +117,8 @@ addPlotFigure pw figArgs = do
                         }
 
     modifyIORef' (figureArgs pf) $ flip Map.alter "tools" $ \case
-        -- with tools if not explicitly specified, default to this list
-        Nothing -> Just $ A.Array $ V.fromList
+        -- the list of tools if not explicitly specified, defaults to this list
+        Nothing -> Just $ LiteralValue
             [ "crosshair"
             , "pan"
             , "xwheel_zoom"
@@ -82,79 +136,10 @@ addPlotFigure pw figArgs = do
     return pf
 
 
-type AxisRef = Int
-
-
-type GroupId = Text
--- | a group has a single narrative timeline, and defines
--- a set of named axes to be linked in pan/zoom
-data PlotGroup = PlotGroup {
-    plotGrpId :: GroupId
-    , numOfLinkedAxes :: IORef Int
-    , windowsInGroup :: IORef [PlotWindow]
-}
-
-
-type WindowId = Text
--- | a window mapped to a browser window (tab actually nowadays)
-data PlotWindow =  PlotWindow {
-    plotWinId :: WindowId
-    , plotGroup :: PlotGroup
-    , dsInWindow :: BDeque (PrimState IO) ColumnDataSource
-    , figuresInWindow :: IORef [PlotFigure]
-}
-
-
-type ColumnName = Text
-type ColumnData = VS.MVector (PrimState IO) Double
--- todo other types of array element to support ?
--- note js within any browser inherently has no support of int64, 
--- int32/int16/int8 worth to be added beyond float64 ?
-type ColumnDataSource = Map ColumnName ColumnData
-
-type DataSourceRef = Int
-
-
-type RangeName = Text
--- | a figure with glyphs and layout elements
-data PlotFigure = PlotFigure {
-    plotWindow :: PlotWindow
-    , figureArgs :: IORef (Map ArgName A.Value)
-    , figureOps  :: IORef [FigureOp]
-    , linkedAxes :: IORef (Map RangeName AxisRef)
-}
-
-
-type CtorName = Text
-type MethodName = Text
-type ArgName = Text
-type AttrName = Text
-
-data BokehValue where
-    LiteralValue ::A.ToJSON a => a -> BokehValue
--- | reference a column from associated ColumnDataSource, in form of:
---   `{field: 'nnn'}`
-    DataField ::ColumnName -> BokehValue
--- | some bokehjs methods works better with arg value in form of:
---   `{value: vvv}`
-    DataValue ::A.ToJSON a => a -> BokehValue
--- | call a constructor at js site to create the value, in form of:
---   `new Bokeh.Ccc({kkk: vvv, ...})`
-    NewBokehObj ::CtorName -> (Map ArgName (BokehValue)) -> BokehValue
-
-newBokehObj :: CtorName -> [(ArgName, BokehValue)] -> BokehValue
-newBokehObj ctor args = NewBokehObj ctor $ Map.fromList args
-
 data FigureOp =   SetFigAttrs [([AttrName], BokehValue)]
-    | AddGlyph MethodName DataSourceRef (Map ArgName (BokehValue))
-    | AddLayout CtorName (Map ArgName (BokehValue))
+    | AddGlyph MethodName DataSourceRef [(ArgName, BokehValue)]
+    | AddLayout CtorName [(ArgName, BokehValue)]
     | SetGlyphAttrs CtorName [([AttrName], BokehValue)]
-
-addGlyph :: MethodName -> DataSourceRef -> [(ArgName, BokehValue)] -> FigureOp
-addGlyph mth ds args = AddGlyph mth ds $ Map.fromList args
-
-addLayout :: CtorName -> [(ArgName, BokehValue)] -> FigureOp
-addLayout ctor args = AddLayout ctor $ Map.fromList args
 
 infixr 0 $@ -- be infixr so can work together with ($)
 -- | perform op on a figure
@@ -162,13 +147,14 @@ infixr 0 $@ -- be infixr so can work together with ($)
 pf $@ op = modifyIORef' (figureOps pf) $ (:) op
 
 
-linkAxis :: PlotFigure -> RangeName -> AxisRef -> UIO ()
-linkAxis pf rng axis = modifyIORef' (linkedAxes pf) $ Map.insert rng axis
+linkAxis :: AxisRef -> RangeName -> PlotFigure -> UIO ()
+linkAxis axis rng pf = modifyIORef' (linkedAxes pf) $ Map.insert rng axis
 
-linkAxes :: PlotGroup -> [(PlotFigure, RangeName)] -> UIO AxisRef
-linkAxes pg prs = do
+linkAxes :: PlotGroup -> RangeName -> [PlotFigure] -> UIO AxisRef
+linkAxes pg rng pfs = do
     axis <- defineAxis pg
-    for_ prs $ \(pf, rng) -> linkAxis pf rng axis
+    -- TODO check all pfs belong to pg
+    for_ pfs $ linkAxis axis rng
     return axis
 
 defineAxis :: PlotGroup -> UIO AxisRef

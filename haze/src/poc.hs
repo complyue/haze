@@ -12,9 +12,6 @@
 import           UIO
 import           Haze
 
-import qualified RIO.Vector                    as V
-import qualified RIO.Map                       as Map
-
 import qualified Data.Vector.Fusion.Bundle     as VG
 import qualified Data.Vector.Generic.New       as VG
 
@@ -34,19 +31,17 @@ ppoc = do
         x    <- VG.runPrim $ VG.unstream $ VG.generate n fromIntegral
         ySin <- VG.runPrim $ VG.unstream $ VG.generate n $ sin . fromIntegral
         yCos <- VG.runPrim $ VG.unstream $ VG.generate n $ sin . fromIntegral
-        ds   <- putDataSource w1
-            $ Map.fromList [("x", x), ("sin", ySin), ("cos", yCos)]
+        ds   <- putDataSource w1 [("x", x), ("sin", ySin), ("cos", yCos)]
 
-
-        f1 <- addPlotFigure
+        f1   <- addPlotFigure
             w1
-            [ ("title"           , "SIN Figure")
-            , ("toolbar_location", "above")
-            , ("sizing_mode"     , "stretch_both")
+            [ ("title"           , LiteralValue "SIN Figure")
+            , ("toolbar_location", LiteralValue "above")
+            , ("sizing_mode"     , LiteralValue "stretch_both")
             ]
 
         f1 $@ SetFigAttrs
-            [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8.0))
+            [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8))
             , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , ( ["xgrid", "major_label_overrides"]
@@ -54,7 +49,7 @@ ppoc = do
               )
             ]
 
-        f1 $@ addGlyph
+        f1 $@ AddGlyph
             "line"
             ds
             [ ("x"     , DataField "x")
@@ -66,13 +61,13 @@ ppoc = do
 
         f2 <- addPlotFigure
             w1
-            [ ("title"           , "COS Figure")
-            , ("toolbar_location", "below")
-            , ("sizing_mode"     , "stretch_both")
+            [ ("title"           , LiteralValue "COS Figure")
+            , ("toolbar_location", LiteralValue "below")
+            , ("sizing_mode"     , LiteralValue "stretch_both")
             ]
 
         f2 $@ SetFigAttrs
-            [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8.0))
+            [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8))
             , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
             , ( ["xgrid", "major_label_overrides"]
@@ -80,7 +75,7 @@ ppoc = do
               )
             ]
 
-        f2 $@ addGlyph
+        f2 $@ AddGlyph
             "line"
             ds
             [ ("x"     , DataField "x")
@@ -90,7 +85,7 @@ ppoc = do
             , ("legend", DataValue "COS Curve")
             ]
 
-        f1 $@ addLayout
+        f1 $@ AddLayout
             "Span"
             [ ("location"  , LiteralValue 0.0)
             , ("line_color", DataValue "blue")
@@ -98,7 +93,7 @@ ppoc = do
             , ("dimension" , LiteralValue "width")
             , ("line_width", LiteralValue 1)
             ]
-        f1 $@ addLayout
+        f1 $@ AddLayout
             "Span"
             [ ("location"  , LiteralValue 0.0)
             , ("line_color", DataValue "red")
@@ -109,7 +104,7 @@ ppoc = do
 
         f2 $@ SetFigAttrs
             [ ( ["yaxis", "ticker"]
-              , newBokehObj
+              , NewBokehObj
                   "BasicTicker"
                   [ ("min_interval", LiteralValue 0.01)
                   , ("max_interval", LiteralValue 5.0)
@@ -132,17 +127,17 @@ ppoc = do
 
         if True
             then do -- method 1
-                _ <- linkAxes pg [(f1, "x_range"), (f2, "x_range")]
-                _ <- linkAxes pg [(f1, "y_range"), (f2, "y_range")]
+                _sharedX <- linkAxes pg "x_range" [f1, f2]
+                _sharedY <- linkAxes pg "y_range" [f1, f2]
                 pure ()
             else do -- method 2
                 sharedX <- defineAxis pg
                 sharedY <- defineAxis pg
 
-                linkAxis f1 "x_range" sharedX
-                linkAxis f1 "y_range" sharedY
+                linkAxis sharedX "x_range" f1
+                linkAxis sharedY "y_range" f1
 
-                linkAxis f2 "x_range" sharedX
-                linkAxis f2 "y_range" sharedY
+                linkAxis sharedX "x_range" f2
+                linkAxis sharedY "y_range" f2
 
         return ()
