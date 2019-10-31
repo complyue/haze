@@ -20,6 +20,8 @@ import qualified Data.Vector.Storable.Mutable  as VM
 import qualified Data.Vector.Fusion.Bundle     as VG
 import qualified Data.Vector.Generic.New       as VG
 
+import           Foreign
+
 import qualified Data.Map                      as Map
 
 import qualified Data.Aeson                    as A
@@ -205,10 +207,11 @@ showPlot grpId plotProcedure =
         readIORef (windowsInGroup pg) >>= \pws -> for_ pws $ \pw -> do
             let
                 sendCDS cds = do
-                    for_ (Map.elems cds)
-                        $ \cd -> modifyIORef'
-                              totalDataSize
-                              ((+) $ fromIntegral $ VM.length cd)
+                    for_ (Map.elems cds) $ \cd -> modifyIORef'
+                        totalDataSize
+                        ((+) $ fromIntegral
+                            (sizeOf (0.0 :: Double) * (VM.length cd))
+                        )
                             --  liftIO $ wsSendData wsc cd
             foldlDeque (const sendCDS) () (dsInWindow pw)
 
@@ -216,7 +219,7 @@ showPlot grpId plotProcedure =
 
         tds <- readIORef totalDataSize
         let msg =
-                "plotting data size: "
+                "total plot data size: "
                     <> (T.pack $ printf "%0.1f" (tds / 1024 / 1024))
                     <> " MB"
         liftIO $ wsSendText
