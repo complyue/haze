@@ -18,6 +18,7 @@ import           HaduiUtil
 
 import qualified RIO.Text                      as T
 import           Text.Printf
+import qualified Data.ByteString.Builder       as BSB
 
 import qualified RIO.Vector.Storable           as VS
 import qualified Data.Vector.Storable.Mutable  as VM
@@ -30,11 +31,33 @@ import qualified Data.Map                      as Map
 
 import qualified Data.Aeson                    as A
 import           Data.Aeson.QQ                  ( aesonQQ )
-import           NeatInterpolation
 
 import qualified Network.WebSockets            as WS
 
 import           Haze.Types
+
+
+outputBokehValue :: BokehValue -> Utf8Builder
+outputBokehValue = \case
+    LiteralValue v -> json2utf8 v
+    DataField    f -> json2utf8 [aesonQQ|{
+field: #{f}
+}|]
+    DataValue v -> json2utf8 [aesonQQ|{
+field: #{v}
+}|]
+    NewBokehObj ctor args ->
+        "Bokeh." <> display ctor <> "(" <> outputBokehArgs args <> ")"
+  where
+    json2utf8 :: A.ToJSON a => a -> Utf8Builder
+    json2utf8 = Utf8Builder . BSB.lazyByteString . A.encode
+
+outputBokehArgs :: [(ArgName, BokehValue)] -> Utf8Builder
+outputBokehArgs m = (foldl' kv "{" m) <> "}"
+    where kv p (k, v) = p <> display k <> ": " <> outputBokehValue v <> ", "
+
+outputBokehDict :: Map ArgName BokehValue -> Utf8Builder
+outputBokehDict m = outputBokehArgs $ Map.assocs m
 
 
 totalDataSize :: PlotGroup -> UIO Double
@@ -111,14 +134,16 @@ outputPlot wsc pg = do
 
 outputWin :: WS.Connection -> PlotWindow -> UIO ()
 outputWin wsc pw = do
+    -- send binary packets for column data, return cumulated column name list
     cnl <- foldrDeque processCDSQ [] dsiw
-    pfs <- readIORef $ figuresInWindow pw
-    pcl <- foldM outputFigure [] pfs
+    -- generate plot code for all figures into a 'Utf8Builder'
+    pcb <- foldM outputFigure mempty =<< (readIORef $ figuresInWindow pw)
     let !plotCode =
-            T.unlines
-                $  ["async function(pgid, pwid, cdsa){\n\n"]
-                ++ pcl
-                ++ ["\n}\n"]
+            utf8BuilderToText
+                $  "async function(pgid, pwid, cdsa) {\n\n"
+    -- full plot code of a window is wrapped in a functon like this
+                <> pcb
+                <> "\n}\n"
     wsSendText
         wsc
         [aesonQQ|{
@@ -143,15 +168,27 @@ outputWin wsc pw = do
         return $ Map.keys cds : cnl
 
 
-outputFigure :: [Text] -> PlotFigure -> UIO [Text]
-outputFigure pcl pf = do
+outputFigure :: Utf8Builder -> PlotFigure -> UIO Utf8Builder
+outputFigure pcb pf = do
+    let fcb0 = pcb <> "(async function(fig) {\n"
+    fcb1 <- foldM outputFigOp fcb0 =<< (readIORef $ figureOps pf)
+    fcb2 <-
+        (foldM outputAxisLink fcb1) . Map.assocs =<< (readIORef $ linkedAxes pf)
     figArgs <- readIORef $ figureArgs pf
-    figOps  <- readIORef $ figureOps pf
-    lAxes   <- readIORef $ linkedAxes pf
+    let fcb3  = fcb2 <> "})(\n"
+        fArgs = outputBokehDict figArgs
+    return $ fcb3 <> fArgs <> ")\n"
 
-    let pcl' = "xx" : pcl
 
-    return $ pcl'
-    where pw = plotWindow pf
+outputFigOp :: Utf8Builder -> FigureOp -> UIO Utf8Builder
+outputFigOp fcb op = do
+
+    return $ fcb <> "xxx\n"
+
+
+outputAxisLink :: Utf8Builder -> (RangeName, AxisRef) -> UIO Utf8Builder
+outputAxisLink fcb (rng, axis) = do
+
+    return $ fcb <> "xxx\n"
 
 
