@@ -18,8 +18,8 @@ Size & Speed in essence.
   efficient than solutions with intermediate representations in textual
   (commonly JSON in particular) form. This unleashes Bokeh's potental
   of rendering massive data points at the order of millions, while still
-  being smooth, as well as previewed, during continuous scaling (zoom),
-  and dragging (pan), and etc. BokehJS achieves these by rendering with
+  being smooth, as well as previewed, during continuous scaling (zoom) /
+  dragging (pan) and etc. BokehJS achieves these by rendering with
   [WebGL](https://www.khronos.org/webgl/) beyond HTML Canvas, or simply
   SVG.
 
