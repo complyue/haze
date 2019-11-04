@@ -16,8 +16,8 @@ Actuall data are always transfered & used as binary chunks, much more
 efficient than solutions with intermediate representations in textual
 (commonly JSON in particular) form. This unleashes Bokeh's potental
 of rendering massive data points at the order of millions, while still
-being smooth in loseless zooming, sketched preview during dragging,
-and etc. BokehJS achieves these by rendering with
+being smooth, as well as previewed, during continuous scaling (zoom),
+and dragging (pan), and etc. BokehJS achieves these by rendering with
 [WebGL](https://www.khronos.org/webgl/) beyond HTML Canvas, or simply
 SVG.
 
@@ -42,8 +42,7 @@ Haze might has more space to improve, let's see how's that over time.
 
 Haze lacks documentation as badly as BokehJS does, best doc may be the
 (unfortunately Python oriented)
-[API reference](https://docs.bokeh.org/en/latest/docs/reference.html)
-.
+[API reference](https://docs.bokeh.org/en/latest/docs/reference.html).
 
 While fortunately it'll feel language-neutral once you get familiar
 with Bokeh at all, the reference sorta works for all languages relevant,
@@ -58,7 +57,6 @@ Haze works as a
 
 Haze deviates from the strongly typed tradition pursued by both Bokeh
 (written in _TypeScript_ at the core) and Haskell, for time being.
-
 It may possibly become a full-fledged, strongly typed
 [Haskell](https://www.haskell.org/) binding of [Bokeh](https://bokeh.org)
 ultimately, but however not for certain right now.
