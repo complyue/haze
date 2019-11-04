@@ -20,10 +20,7 @@ import qualified RIO.Text                      as T
 import           Text.Printf
 import qualified Data.ByteString.Builder       as BSB
 
-import qualified RIO.Vector.Storable           as VS
 import qualified Data.Vector.Storable.Mutable  as VM
-import qualified Data.Vector.Fusion.Bundle     as VG
-import qualified Data.Vector.Generic.New       as VG
 
 import           Foreign
 
@@ -37,27 +34,28 @@ import qualified Network.WebSockets            as WS
 import           Haze.Types
 
 
-outputBokehValue :: BokehValue -> Utf8Builder
-outputBokehValue = \case
-    LiteralValue v -> json2utf8 v
-    DataField    f -> json2utf8 [aesonQQ|{
+stringify :: A.ToJSON a => a -> Utf8Builder
+stringify = Utf8Builder . BSB.lazyByteString . A.encode
+
+
+compileBokehValue :: BokehValue -> Utf8Builder
+compileBokehValue = \case
+    LiteralValue v -> stringify v
+    DataField    f -> stringify [aesonQQ|{
 field: #{f}
 }|]
-    DataValue v -> json2utf8 [aesonQQ|{
-field: #{v}
+    DataValue v -> stringify [aesonQQ|{
+value: #{v}
 }|]
     NewBokehObj ctor args ->
-        "Bokeh." <> display ctor <> "(" <> outputBokehArgs args <> ")"
-  where
-    json2utf8 :: A.ToJSON a => a -> Utf8Builder
-    json2utf8 = Utf8Builder . BSB.lazyByteString . A.encode
+        "Bokeh." <> display ctor <> "(" <> compileBokehArgs args <> ")"
 
-outputBokehArgs :: [(ArgName, BokehValue)] -> Utf8Builder
-outputBokehArgs m = (foldl' kv "{" m) <> "}"
-    where kv p (k, v) = p <> display k <> ": " <> outputBokehValue v <> ", "
+compileBokehArgs :: [(ArgName, BokehValue)] -> Utf8Builder
+compileBokehArgs m = (foldl' nv "{ " m) <> "}"
+    where nv p (n, v) = p <> display n <> ": " <> compileBokehValue v <> ", "
 
-outputBokehDict :: Map ArgName BokehValue -> Utf8Builder
-outputBokehDict m = outputBokehArgs $ Map.assocs m
+compileBokehDict :: Map ArgName BokehValue -> Utf8Builder
+compileBokehDict m = compileBokehArgs $ Map.assocs m
 
 
 totalDataSize :: PlotGroup -> UIO Double
@@ -120,9 +118,6 @@ outputPlot wsc pg = do
     pws <- readIORef (windowsInGroup pg)
     for_ pws $ outputWin wsc
 
---     let plotCode = [text|
--- console.log('here it is!')
--- |]
 --     wsSendText
 --         wsc
 --         [aesonQQ|{
@@ -175,9 +170,8 @@ outputFigure pcb pf = do
     fcb2 <-
         (foldM outputAxisLink fcb1) . Map.assocs =<< (readIORef $ linkedAxes pf)
     figArgs <- readIORef $ figureArgs pf
-    let fcb3  = fcb2 <> "})(\n"
-        fArgs = outputBokehDict figArgs
-    return $ fcb3 <> fArgs <> ")\n"
+    let fcb3 = fcb2 <> "})"
+    return $ fcb3 <> "(\n" <> compileBokehDict figArgs <> ")\n"
 
 
 outputFigOp :: Utf8Builder -> FigureOp -> UIO Utf8Builder
