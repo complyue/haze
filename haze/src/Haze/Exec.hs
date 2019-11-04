@@ -53,7 +53,11 @@ field: #{f}
 value: #{v}
 }|]
     NewBokehObj ctor args ->
-        "Bokeh." <> display ctor <> "({\n" <> compileBokehArgs args <> "})\n"
+        "new Bokeh."
+            <> display ctor
+            <> "({\n"
+            <> compileBokehArgs args
+            <> "})\n"
 
 compileBokehArgs :: [(ArgName, BokehValue)] -> Utf8Builder
 compileBokehArgs m = (foldl' nv " " m) <> ""
@@ -125,14 +129,6 @@ outputPlot wsc pg = do
     pws <- readIORef (windowsInGroup pg)
     for_ pws $ outputWin wsc
 
---     wsSendText
---         wsc
---         [aesonQQ|{
--- "type": "call"
--- , "name": "plotGroup"
--- , "args": [#{plotCode}]
--- }|]
-
 
 outputWin :: WS.Connection -> PlotWindow -> UIO ()
 outputWin wsc pw = do
@@ -142,7 +138,7 @@ outputWin wsc pw = do
     pcb <- foldM outputFigure mempty =<< (readIORef $ figuresInWindow pw)
     let !plotCode =
             utf8BuilderToText
-                $  "async function(pgid, pwid, cdsa) {\n\n"
+                $  "(pgid, pwid, cdsa)=>{\n\n"
     -- full plot code of a window is wrapped in a functon like this
                 <> pcb
                 <> "\n}\n"
@@ -172,22 +168,26 @@ outputWin wsc pw = do
 
 outputFigure :: Utf8Builder -> PlotFigure -> UIO Utf8Builder
 outputFigure pcb pf = do
-    let fcb0 = pcb <> "(async function(fig) {\n"
+    let fcb0 = pcb <> "(async function(fig) {\n" -- <> "debugger;\n"
     fops <- readIORef $ figureOps pf
-    let fcb1 = foldl' compileFigOp fcb0 fops
+    let fcb1 = foldr compileFigOp fcb0 fops
     laxs <- readIORef $ linkedAxes pf
-    let fcb2 = foldl' (compileAxisLink pgid) fcb1 $ Map.assocs laxs
+    let fcb2 = foldr (compileAxisLink pgid) fcb1 $ Map.assocs laxs
+        fcb3 = fcb2 <> "Bokeh.Plotting.show(fig);\n})"
     figArgs <- readIORef $ figureArgs pf
-    let fcb3 = fcb2 <> "})"
-    return $ fcb3 <> "(\n" <> compileBokehDict figArgs <> ")\n"
+    return
+        $  fcb3
+        <> "(Bokeh.Plotting.figure({"
+        <> compileBokehDict figArgs
+        <> "}))\n"
   where
     !pw   = plotWindow pf
     !pg   = plotGroup pw
     !pgid = plotGrpId pg
 
 
-compileFigOp :: Utf8Builder -> FigureOp -> Utf8Builder
-compileFigOp fcb = \case
+compileFigOp :: FigureOp -> Utf8Builder -> Utf8Builder
+compileFigOp fop fcb = case fop of
 
     AddGlyph mth ds args ->
         fcb
@@ -231,8 +231,8 @@ compileFigOp fcb = \case
             <> "\n"
 
 
-compileAxisLink :: GroupId -> Utf8Builder -> (RangeName, AxisRef) -> Utf8Builder
-compileAxisLink pgid fcb (rng, axis) =
+compileAxisLink :: GroupId -> (RangeName, AxisRef) -> Utf8Builder -> Utf8Builder
+compileAxisLink pgid (rng, axis) fcb =
     fcb
         <> "syncRange(fig."
         <> display rng
@@ -240,4 +240,4 @@ compileAxisLink pgid fcb (rng, axis) =
         <> display pgid
         <> "#"
         <> display axis
-        <> "')"
+        <> "');\n"

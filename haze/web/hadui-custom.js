@@ -11,7 +11,7 @@ export const HaduiDefaultStmt =
 
   let n = 20
 
-  showPlot "g1" $ \\pg -> do
+  uiPlot "g1" $ \\pg -> do
 
     w1   <- openPlotWindow pg "w1"
 
