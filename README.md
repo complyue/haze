@@ -10,7 +10,7 @@ within Haskell, having
 as the transpiling target, for Haskell code to do low-level
 plotting (in contrast to more declarative, high-level charting).
 
-## Advantage
+## Advantage over other Visualization Kits for Haskell
 
 Size & Speed in essence.
 
@@ -23,16 +23,20 @@ Size & Speed in essence.
   [WebGL](https://www.khronos.org/webgl/) beyond HTML Canvas, or simply
   SVG.
 
-- You can interactively plot the massive result data of your Haskell
-  code (tends under active development in a stack project) for immediate
-  verification & intuition.
+- You can interactively visualize the massive result data of your
+  Haskell code during active development of the projects, for immediate
+  verification & intuition, thus fast iterations.
 
-- [WYSIWYG](https://en.wikipedia.org/wiki/WYSIWYG). The plot (with
-  whatever arguments it takes) is right-away published over network.
+- [WYSIWYG](https://en.wikipedia.org/wiki/WYSIWYG). The live plot setup,
+  with whatever arguments it takes, is right-away published over network,
+  i.e. made available to others in reach.
   But you want to do this only within a trusted internal environment,
   given this
   [security CAVEAT](https://github.com/complyue/hadui/issues/3)
   by far still valid.
+  The stack project underhood is straight to be versioned and released
+  from coding team to analyzing team as a deliverable across the
+  production lifecycle.
 
 ## Style
 
