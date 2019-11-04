@@ -12,23 +12,25 @@ plotting (in contrast to more declarative, high-level charting).
 
 ## Advantage
 
-Actuall data are always transfered & used as binary chunks, much more
-efficient than solutions with intermediate representations in textual
-(commonly JSON in particular) form. This unleashes Bokeh's potental
-of rendering massive data points at the order of millions, while still
-being smooth, as well as previewed, during continuous scaling (zoom),
-and dragging (pan), and etc. BokehJS achieves these by rendering with
-[WebGL](https://www.khronos.org/webgl/) beyond HTML Canvas, or simply
-SVG.
+Size & Speed in essence.
 
-You can interactively plot the massive result data of your Haskell
-code (tends under active development in a stack project) for immediate
-verification & intuition.
+- Actuall data are always transfered & used as binary chunks, much more
+  efficient than solutions with intermediate representations in textual
+  (commonly JSON in particular) form. This unleashes Bokeh's potental
+  of rendering massive data points at the order of millions, while still
+  being smooth, as well as previewed, during continuous scaling (zoom),
+  and dragging (pan), and etc. BokehJS achieves these by rendering with
+  [WebGL](https://www.khronos.org/webgl/) beyond HTML Canvas, or simply
+  SVG.
 
-The plotting page can be right-away published to a trusted networked
-environment (with
-[security CAVEAT](https://github.com/complyue/hadui/issues/3)
-).
+- You can interactively plot the massive result data of your Haskell
+  code (tends under active development in a stack project) for immediate
+  verification & intuition.
+
+- The plotting page can be right-away published to a trusted networked
+  environment (with
+  [security CAVEAT](https://github.com/complyue/hadui/issues/3)
+  ).
 
 ## Style
 
