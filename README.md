@@ -42,9 +42,11 @@ Size & Speed in essence.
 
 [BokehJS](https://docs.bokeh.org/en/latest/docs/user_guide/bokehjs.html)
 aims to be declarative compared to traditional graphical programming
-toolkits, but it still feels imperative compared to Haskell stylish.
+toolkits, but it still feels imperative compared to stylish Haskell.
 
-Haze might has more space to improve, let's see how's that over time.
+Haze just **lifts** the imperative aspect of BokehJS API into Haskell
+for now, it might have more potental to improve, let's see how's that
+over time.
 
 ## Documentation
 
