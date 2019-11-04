@@ -8,7 +8,12 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE GADTs #-}
 
-module Haze.Plot
+-- | The Haze executor:
+--   * transfers binary data to js site (the browser);
+--   * transpiles the plotting DSL (in Haskell) to Javascript,
+--     then send to js site (the browser) for execution.
+
+module Haze.Exec
     ( uiPlot
     )
 where
