@@ -15,15 +15,18 @@ plotting (in contrast to more declarative, high-level charting).
 Actuall data are always transfered & used as binary chunks, much more
 efficient than solutions with intermediate representations in textual
 (commonly JSON in particular) form. This unleashes Bokeh's potental
-of rendering massive data points at the order of millions, with
-loseless zooming, sketched preview during dragging, and etc. by using
-[WebGL](https://www.khronos.org/webgl/).
+of rendering massive data points at the order of millions, while still
+being smooth in loseless zooming, sketched preview during dragging,
+and etc. BokehJS achieves these by rendering with
+[WebGL](https://www.khronos.org/webgl/) beyond HTML Canvas, or simply
+SVG.
 
-Interactively plot the massive result data of your Haskell code
-(that under active development in a stack project) for immediate
+You can interactively plot the massive result data of your Haskell
+code (tends under active development in a stack project) for immediate
 verification & intuition.
 
-Right-away publish to a trusted networked environment (with
+The plotting page can be right-away published to a trusted networked
+environment (with
 [security CAVEAT](https://github.com/complyue/hadui/issues/3)
 ).
 
