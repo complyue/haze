@@ -77,7 +77,12 @@ data PlotFigure = PlotFigure {
     , linkedAxes :: IORef (Map RangeName AxisRef)
 }
 
-data FigureOp =   SetFigAttrs [([AttrName], BokehValue)]
-    | AddGlyph MethodName DataSourceRef [(ArgName, BokehValue)]
+
+-- | operations can be performed against a figure
+data FigureOp =
+      AddGlyph MethodName DataSourceRef [(ArgName, BokehValue)]
     | AddLayout CtorName [(ArgName, BokehValue)]
+    | SetFigAttrs [([AttrName], BokehValue)]
     | SetGlyphAttrs CtorName [([AttrName], BokehValue)]
+
+

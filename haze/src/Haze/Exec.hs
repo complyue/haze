@@ -53,11 +53,13 @@ field: #{f}
 value: #{v}
 }|]
     NewBokehObj ctor args ->
-        "Bokeh." <> display ctor <> "(" <> compileBokehArgs args <> ")"
+        "Bokeh." <> display ctor <> "({\n" <> compileBokehArgs args <> "})\n"
 
 compileBokehArgs :: [(ArgName, BokehValue)] -> Utf8Builder
-compileBokehArgs m = (foldl' nv "{ " m) <> "}"
-    where nv p (n, v) = p <> display n <> ": " <> compileBokehValue v <> ", "
+compileBokehArgs m = (foldl' nv " " m) <> ""
+  where
+    nv p (n, v) =
+        p <> "  " <> display n <> ": " <> compileBokehValue v <> ",\n"
 
 compileBokehDict :: Map ArgName BokehValue -> Utf8Builder
 compileBokehDict m = compileBokehArgs $ Map.assocs m
@@ -171,23 +173,71 @@ outputWin wsc pw = do
 outputFigure :: Utf8Builder -> PlotFigure -> UIO Utf8Builder
 outputFigure pcb pf = do
     let fcb0 = pcb <> "(async function(fig) {\n"
-    fcb1 <- foldM outputFigOp fcb0 =<< (readIORef $ figureOps pf)
-    fcb2 <-
-        (foldM outputAxisLink fcb1) . Map.assocs =<< (readIORef $ linkedAxes pf)
+    fops <- readIORef $ figureOps pf
+    let fcb1 = foldl' compileFigOp fcb0 fops
+    laxs <- readIORef $ linkedAxes pf
+    let fcb2 = foldl' (compileAxisLink pgid) fcb1 $ Map.assocs laxs
     figArgs <- readIORef $ figureArgs pf
     let fcb3 = fcb2 <> "})"
     return $ fcb3 <> "(\n" <> compileBokehDict figArgs <> ")\n"
+  where
+    !pw   = plotWindow pf
+    !pg   = plotGroup pw
+    !pgid = plotGrpId pg
 
 
-outputFigOp :: Utf8Builder -> FigureOp -> UIO Utf8Builder
-outputFigOp fcb op = do
+compileFigOp :: Utf8Builder -> FigureOp -> Utf8Builder
+compileFigOp fcb = \case
 
-    return $ fcb <> "xxx\n"
+    AddGlyph mth ds args ->
+        fcb
+            <> "fig."
+            <> display mth
+            <> "({\n  source: cdsa["
+            <> display ds
+            <> "],\n"
+            <> compileBokehArgs args
+            <> "})\n"
+
+    AddLayout ctor args ->
+        fcb
+            <> "fig.add_layout(new Bokeh."
+            <> display ctor
+            <> "({\n"
+            <> compileBokehArgs args
+            <> "}))\n"
+
+    SetGlyphAttrs ctor sas -> foldr setGlyAttr fcb1 sas <> "}\n"
+      where
+        fcb1 =
+            fcb <> "for (let g of fig.select(Bokeh." <> display ctor <> ")) {\n"
+
+    SetFigAttrs sas -> foldr setFigAttr fcb sas
+
+  where
+
+    setFigAttr (path, val) cb =
+        cb
+            <> foldl' (\b p -> b <> "." <> display p) "fig" path
+            <> " = "
+            <> compileBokehValue val
+            <> "\n"
+
+    setGlyAttr (path, val) cb =
+        cb
+            <> foldl' (\b p -> b <> "." <> display p) "g" path
+            <> " = "
+            <> compileBokehValue val
+            <> "\n"
 
 
-outputAxisLink :: Utf8Builder -> (RangeName, AxisRef) -> UIO Utf8Builder
-outputAxisLink fcb (rng, axis) = do
-
-    return $ fcb <> "xxx\n"
-
-
+compileAxisLink :: GroupId -> Utf8Builder -> (RangeName, AxisRef) -> Utf8Builder
+compileAxisLink pgid fcb (rng, axis) =
+    fcb
+        <> "syncRange(fig."
+        <> display rng
+        <> ", 'rng@"
+        <> display pgid
+        <> "#"
+        <> display axis
+        <> "')"
