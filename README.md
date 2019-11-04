@@ -27,10 +27,12 @@ Size & Speed in essence.
   code (tends under active development in a stack project) for immediate
   verification & intuition.
 
-- The plotting page can be right-away published to a trusted networked
-  environment (with
+- [WYSIWYG](https://en.wikipedia.org/wiki/WYSIWYG). The plot (with
+  whatever arguments it takes) is right-away published over network.
+  But you want to do this only within a trusted internal environment,
+  given this
   [security CAVEAT](https://github.com/complyue/hadui/issues/3)
-  ).
+  by far still valid.
 
 ## Style
 
