@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
@@ -11,20 +13,20 @@
 module Haze.DSL
     ( ColumnDataSource
     , ColumnData
-    , BokehValue(..)
-    , PlotGroup(..)
-    , PlotWindow(..)
-    , PlotFigure(..)
-    , uiPlot
-    , openPlotWindow
-    , putDataSource
-    , addPlotFigure
-    , ($@)
-    , FigureOp(..)
-    , showPlot
-    , linkAxis
-    , linkAxes
-    , defineAxis
+    -- , BokehValue(..)
+    -- , PlotGroup(..)
+    -- , PlotWindow(..)
+    -- , PlotFigure(..)
+    -- , uiPlot
+    -- , openPlotWindow
+    -- , putDataSource
+    -- , addPlotFigure
+    -- , ($@)
+    -- , FigureOp(..)
+    -- , showPlot
+    -- , linkAxis
+    -- , linkAxes
+    -- , defineAxis
     , AxisRef
     )
 where
@@ -34,104 +36,99 @@ import qualified RIO.Text                      as T
 
 import qualified Data.Map                      as Map
 
+import qualified Data.Aeson                    as A
+
 import           Haze.Types
 import           Haze.Exec
 
 
-openPlotWindow :: PlotGroup -> WindowId -> UIO PlotWindow
-openPlotWindow pg winId = do
-    dsInWindow_      <- newDeque
-    figuresInWindow_ <- newIORef []
-    plotLayouts_     <- newIORef []
-    let pw = PlotWindow { plotGroup       = pg
-                        , plotWinId       = winId
-                        , dsInWindow      = dsInWindow_
-                        , figuresInWindow = figuresInWindow_
-                        , plotLayouts     = plotLayouts_
-                        }
+-- | the pure monad to plot a group
+newtype Plot a = Plot { doPlot :: PG -> (PG, a) }
+instance Functor Plot where
+    fmap f p = Plot $ \pg -> let (_, a) = doPlot p pg in (pg, f a)
+instance Applicative Plot where
+    pure x = Plot $ \pg -> (pg, x)
+    p1 <*> p2 = Plot $ \pg ->
+        let (_, f1) = doPlot p1 pg
+            (_, f2) = doPlot p2 pg
+        in  (pg, f1 f2)
+instance Monad Plot where
+    return = pure
+    m >>= f = Plot $ \pg -> let (pg', r) = doPlot m pg in doPlot (f r) pg'
 
-    modifyIORef' (windowsInGroup pg) $ (:) pw
+-- | the pure monad to plot a window
+newtype PlotWin a = PlotWin { doPlotWin :: PW -> (PW, a) }
+instance Functor PlotWin where
+    fmap f p = PlotWin $ \pw -> let (_, a) = doPlotWin p pw in (pw, f a)
+instance Applicative PlotWin where
+    pure x = PlotWin $ \pw -> (pw, x)
+    p1 <*> p2 = PlotWin $ \pw ->
+        let (_, f1) = doPlotWin p1 pw
+            (_, f2) = doPlotWin p2 pw
+        in  (pw, f1 f2)
+instance Monad PlotWin where
+    return = pure
+    m >>= f =
+        PlotWin $ \pw -> let (pw', r) = doPlotWin m pw in doPlotWin (f r) pw'
 
-    return pw
-
-
-putDataSource :: PlotWindow -> [(ColumnName, ColumnData)] -> UIO DataSourceRef
-putDataSource pw cds = do
-    let !dsiw = dsInWindow pw
-    dsr <- getDequeSize dsiw
-    pushBackDeque dsiw $ Map.fromList cds
-    return dsr
-
-
-addPlotFigure :: PlotWindow -> [(ArgName, BokehValue)] -> UIO PlotFigure
-addPlotFigure pw figArgs = do
-    -- shouldn't be too many figures in a window, tolerate the unnecessary O(n)
-    -- in measuring length of the list
-    figureNo_   <- (+ 1) . length <$> (readIORef $ figuresInWindow pw)
-    figureArgs_ <- newIORef $ Map.fromList figArgs
-    figureOps_  <- newIORef []
-    linkedAxes_ <- newIORef Map.empty
-    let pf = PlotFigure { plotWindow = pw
-                        , figureNo   = figureNo_
-                        , figureArgs = figureArgs_
-                        , figureOps  = figureOps_
-                        , linkedAxes = linkedAxes_
-                        }
-
-    modifyIORef' (figureArgs pf) $ flip Map.alter "tools" $ \case
-        -- the list of tools if not explicitly specified, defaults to this list
-        Nothing -> Just $ LiteralValue
-            ([ "crosshair"
-             , "pan"
-             , "xwheel_zoom"
-             , "ywheel_zoom"
-             , "box_zoom"
-             , "hover"
-             , "undo"
-             , "redo"
-             , "reset"
-             ] :: [Text]
-            )
-        Just tools -> Just tools
-
-    modifyIORef' (figuresInWindow pw) $ (:) pf
-
-    return pf
-
-infixr 0 $@ -- be infixr so can work together with ($)
--- | perform op on a figure
-($@) :: PlotFigure -> FigureOp -> UIO ()
-pf $@ op = modifyIORef' (figureOps pf) $ (:) op
+-- | the pure monad to plot a figure
+newtype PlotFig a = PlotFig { doPlotFig :: Fig -> (Fig, a) }
+instance Functor PlotFig where
+    fmap f p = PlotFig $ \pf -> let (_, a) = doPlotFig p pf in (pf, f a)
+instance Applicative PlotFig where
+    pure x = PlotFig $ \pf -> (pf, x)
+    p1 <*> p2 = PlotFig $ \pf ->
+        let (_, f1) = doPlotFig p1 pf
+            (_, f2) = doPlotFig p2 pf
+        in  (pf, f1 f2)
+instance Monad PlotFig where
+    return = pure
+    m >>= f =
+        PlotFig $ \pf -> let (pf', r) = doPlotFig m pf in doPlotFig (f r) pf'
 
 
-linkAxis :: AxisRef -> RangeName -> PlotFigure -> UIO ()
-linkAxis axis rng pf = modifyIORef' (linkedAxes pf) $ Map.insert rng axis
+gPlot :: GroupId -> Plot () -> UIO ()
+gPlot pgId plotAct = do
+    let (pg, _) = doPlot plotAct PG { pgId = pgId, lxs = 0, pws = [] }
 
-linkAxes :: PlotGroup -> RangeName -> [PlotFigure] -> UIO AxisRef
-linkAxes pg rng pfs = do
-    axis <- defineAxis pg
-    -- TODO check all pfs belong to pg
-    for_ pfs $ linkAxis axis rng
-    return axis
+    logInfo $ "plot has " <> (display $ length $ pws pg) <> " windows."
 
-defineAxis :: PlotGroup -> UIO AxisRef
-defineAxis pg = atomicModifyIORef' (numOfLinkedAxes pg) $ \i -> (i + 1, i)
+    return ()
+
+defineAxis :: Plot AxisRef
+defineAxis = Plot $ \pg -> let !ar = lxs pg in (pg { lxs = ar + 1 }, ar)
 
 
-showPlot
-    :: PlotWindow
-    -> MethodName
-    -> BokehValue
-    -> [(ArgName, BokehValue)]
-    -> Text
-    -> UIO ()
-showPlot pw mth children opts tgt = do
-    -- todo validate referenced figures belong to window 'pw'
-    let layoutOpts_ = Map.fromList opts
-    modifyIORef' (plotLayouts pw) $ (:) PlotLayout
-        { layoutMethod   = mth
-        , layoutChildren = children
-        , layoutOptions  = layoutOpts_
-        , layoutTarget   = if T.null tgt then "null" else tgt
-        }
+type WinId = Text
+type WinRef = Int
+wPlot :: WinId -> PlotWin () -> Plot WinRef
+wPlot pwId plotAct = Plot $ \pg ->
+    let !wr       = length $ pws pg
+        !pw       = PW { pwId = pwId, cdss = [], figs = [], lays = [] }
+        !(pw', _) = doPlotWin plotAct pw
+    in  (pg { pws = pw' : pws pg }, wr)
+
+
+type FigRef = Int
+fPlot :: BVC v => [(ArgName, v)] -> PlotFig () -> PlotWin FigRef
+fPlot args plotAct = PlotWin $ \pw ->
+    let !figNo_ = 1 + (length $ figs pw)
+        !fig    = Fig { figArgs  = Map.map toBV (Map.fromList args)
+                      , figOps   = []
+                      , figLinks = Map.empty
+                      }
+        !(fig', _) = doPlotFig plotAct fig
+    in  (pw { figs = fig' : figs pw }, figNo_)
+
+
+setFigAttrs :: BVC v => [([AttrName], v)] -> PlotFig ()
+setFigAttrs specs = PlotFig $ \pf ->
+    let specs' = map (\(path, v) -> (path, toBV v)) specs
+    in  (pf { figOps = SetFigAttrs' specs' : figOps pf }, ())
+
+
+linkFigAxis :: RangeName -> AxisRef -> PlotFig ()
+linkFigAxis rng axis =
+    PlotFig $ \pf -> (pf { figLinks = Map.insert rng axis (figLinks pf) }, ())
+
 

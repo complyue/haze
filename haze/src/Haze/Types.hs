@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
@@ -15,6 +17,12 @@ import           UIO
 import qualified RIO.Vector.Storable           as VS
 
 import qualified Data.Aeson                    as A
+
+import qualified Data.ByteString.Builder       as BSB
+
+
+stringify :: A.ToJSON a => a -> Utf8Builder
+stringify = Utf8Builder . BSB.lazyByteString . A.encode
 
 
 type ColumnDataSource = Map ColumnName ColumnData
@@ -34,72 +42,45 @@ type AttrName = Text
 type RangeName = Text
 type AxisRef = Int
 
--- | define the value to be passed to BokehJS at js site
-data BokehValue where
--- | will be converted to 'A.Value' before passed to js
-    LiteralValue ::A.ToJSON a => a -> BokehValue
--- | reference a column from associated ColumnDataSource, in form of:
---   `{field: 'ccc'}`
-    DataField ::ColumnName -> BokehValue
--- | some BokehJS methods work better with arg value in form of:
---   `{value: vvv}`
-    DataValue ::A.ToJSON a => a -> BokehValue
--- | call a constructor at js site to create the value, in form of:
---   `new Bokeh.Ccc({kkk: vvv, ...})`
-    NewBokehObj ::CtorName -> [(ArgName, BokehValue)] -> BokehValue
--- | a `null` in JavaScript
-    JsNull ::BokehValue
--- | an array in JavaScript
-    JsArray ::[BokehValue] -> BokehValue
--- | reference a plotted figure in JavaScript
-    JsFigure ::PlotFigure -> BokehValue
 
-
--- | a group has a single narrative timeline, and defines
--- a set of named axes to be linked in pan/zoom
-data PlotGroup = PlotGroup {
-    plotGrpId :: GroupId
-    , numOfLinkedAxes :: IORef Int
-    , windowsInGroup :: IORef [PlotWindow]
+data PG = PG {
+    pgId :: Text
+    , lxs :: Int
+    , pws :: [PW]
 }
-type GroupId = Text
 
-
--- | a window mapped to a browser window (tab actually nowadays)
-data PlotWindow =  PlotWindow {
-    plotGroup :: PlotGroup
-    , plotWinId :: WindowId
-    , dsInWindow :: BDeque (PrimState IO) ColumnDataSource
-    , figuresInWindow :: IORef [PlotFigure]
-    , plotLayouts :: IORef [PlotLayout]
+data PW = PW {
+    pwId :: Text
+    , cdss :: [ColumnDataSource]
+    , figs :: [Fig]
+    , lays :: [Lay]
 }
-type WindowId = Text
 
+data Fig = Fig {
+    figArgs :: Map ArgName BV
+    , figOps :: [FigOp]
+    , figLinks :: Map RangeName AxisRef
+}
 
--- | transpiles to `plt.show(plt.<layoutMethod>(<layoutChildren>,{...<layoutOptions>}))`
-data PlotLayout = PlotLayout {
-    layoutMethod :: MethodName
-    , layoutChildren :: BokehValue
-    , layoutOptions :: Map ArgName BokehValue
-    , layoutTarget :: Text -- the HTML element to contain the plot, specify empty for body
+data FigOp =
+      SetFigAttrs' [([AttrName], BV)]
+    | AddGlyph' MethodName
+    -- TODO cont.
+
+data Lay = Lay {
+    layMethod :: MethodName
+    , layChildren :: BV
+    , layOpts :: Map ArgName BV
+    , layTarget :: Text
 }
 
 
--- | a figure with glyphs and layout elements
-data PlotFigure = PlotFigure {
-    plotWindow :: PlotWindow
-    , figureNo :: Int
-    , figureArgs :: IORef (Map ArgName BokehValue)
-    , figureOps  :: IORef [FigureOp]
-    , linkedAxes :: IORef (Map RangeName AxisRef)
-}
+newtype BV = BV { bvJsRepr :: Utf8Builder }
 
+class BVC a where
+    toBV :: a -> BV
 
--- | operations can be performed against a figure
-data FigureOp =
-      AddGlyph MethodName DataSourceRef [(ArgName, BokehValue)]
-    | AddLayout CtorName [(ArgName, BokehValue)]
-    | SetFigAttrs [([AttrName], BokehValue)]
-    | SetGlyphAttrs CtorName [([AttrName], BokehValue)]
+instance (A.ToJSON j) => BVC j where
+    toBV = BV . stringify
 
 

@@ -25,7 +25,6 @@ import           Data.Foldable                  ( foldrM )
 
 import qualified RIO.Text                      as T
 import           Text.Printf
-import qualified Data.ByteString.Builder       as BSB
 
 import qualified Data.Vector.Storable.Mutable  as VM
 
@@ -33,16 +32,11 @@ import           Foreign
 
 import qualified Data.Map                      as Map
 
-import qualified Data.Aeson                    as A
 import           Data.Aeson.QQ                  ( aesonQQ )
 
 import qualified Network.WebSockets            as WS
 
 import           Haze.Types
-
-
-stringify :: A.ToJSON a => a -> Utf8Builder
-stringify = Utf8Builder . BSB.lazyByteString . A.encode
 
 
 compileBokehValue :: BokehValue -> Utf8Builder
