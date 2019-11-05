@@ -47,6 +47,12 @@ data BokehValue where
 -- | call a constructor at js site to create the value, in form of:
 --   `new Bokeh.Ccc({kkk: vvv, ...})`
     NewBokehObj ::CtorName -> [(ArgName, BokehValue)] -> BokehValue
+-- | a `null` in JavaScript
+    JsNull ::BokehValue
+-- | an array in JavaScript
+    JsArray ::[BokehValue] -> BokehValue
+-- | reference a plotted figure in JavaScript
+    JsFigure ::PlotFigure -> BokehValue
 
 
 -- | a group has a single narrative timeline, and defines
@@ -65,13 +71,24 @@ data PlotWindow =  PlotWindow {
     , plotWinId :: WindowId
     , dsInWindow :: BDeque (PrimState IO) ColumnDataSource
     , figuresInWindow :: IORef [PlotFigure]
+    , plotLayouts :: IORef [PlotLayout]
 }
 type WindowId = Text
+
+
+-- | transpiles to `plt.show(plt.<layoutMethod>(<layoutChildren>,{...<layoutOptions>}))`
+data PlotLayout = PlotLayout {
+    layoutMethod :: MethodName
+    , layoutChildren :: BokehValue
+    , layoutOptions :: Map ArgName BokehValue
+    , layoutTarget :: Text -- the HTML element to contain the plot, specify empty for body
+}
 
 
 -- | a figure with glyphs and layout elements
 data PlotFigure = PlotFigure {
     plotWindow :: PlotWindow
+    , figureNo :: Int
     , figureArgs :: IORef (Map ArgName BokehValue)
     , figureOps  :: IORef [FigureOp]
     , linkedAxes :: IORef (Map RangeName AxisRef)

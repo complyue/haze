@@ -13,121 +13,131 @@ export const HaduiDefaultStmt =
 
   uiPlot "g1" $ \\pg -> do
 
-    w1   <- openPlotWindow pg "w1"
+  w1   <- openPlotWindow pg "w1"
 
-    x    <- generateSeries n fromIntegral
-    ySin <- generateSeries n $ sin . fromIntegral
-    yCos <- generateSeries n $ sin . fromIntegral
-    ds   <- putDataSource w1 [("x", x), ("sin", ySin), ("cos", yCos)]
+  x    <- generateSeries n fromIntegral
+  ySin <- generateSeries n $ sin . fromIntegral
+  yCos <- generateSeries n $ cos . fromIntegral
+  ds   <- putDataSource w1 [("x", x), ("sin", ySin), ("cos", yCos)]
 
-    f1   <- addPlotFigure
-        w1
-        [ ("title"           , LiteralValue "SIN Figure")
-        , ("toolbar_location", LiteralValue "above")
-        , ("sizing_mode"     , LiteralValue "stretch_both")
-        ]
+  f1   <- addPlotFigure
+      w1
+      [ ("title"           , LiteralValue "SIN Figure")
+      , ("toolbar_location", LiteralValue "above")
+      , ("sizing_mode"     , LiteralValue "stretch_both")
+      ]
 
-    f1 $@ SetFigAttrs
-        [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8))
-        , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
-        , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
-        , ( ["xgrid", "major_label_overrides"]
-            , LiteralValue $ (("Pt#" <>) . tshow) <$> [1 .. n]
-            )
-        ]
+  f1 $@ SetFigAttrs
+      [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8))
+      , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
+      , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
+      , ( ["xgrid", "major_label_overrides"]
+        , LiteralValue $ (("Pt#" <>) . tshow) <$> [1 .. n]
+        )
+      ]
 
-    f1 $@ AddGlyph
-        "line"
-        ds
-        [ ("x"     , DataField "x")
-        , ("y"     , DataField "sin")
-        , ("color" , DataValue "#1122cc")
-        , ("alpha" , DataValue 0.7)
-        , ("legend", DataValue "SIN Curve")
-        ]
+  f1 $@ AddGlyph
+      "line"
+      ds
+      [ ("x"     , DataField "x")
+      , ("y"     , DataField "sin")
+      , ("color" , DataValue "#1122cc")
+      , ("alpha" , DataValue 0.7)
+      , ("legend", DataValue "SIN Curve")
+      ]
 
-    f2 <- addPlotFigure
-        w1
-        [ ("title"           , LiteralValue "COS Figure")
-        , ("toolbar_location", LiteralValue "below")
-        , ("sizing_mode"     , LiteralValue "stretch_both")
-        ]
+  f2 <- addPlotFigure
+      w1
+      [ ("title"           , LiteralValue "COS Figure")
+      , ("toolbar_location", LiteralValue "below")
+      , ("sizing_mode"     , LiteralValue "stretch_both")
+      ]
 
-    f2 $@ SetFigAttrs
-        [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8))
-        , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
-        , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
-        , ( ["xgrid", "major_label_overrides"]
-            , LiteralValue $ (("Pt#" <>) . tshow) <$> [1 .. n]
-            )
-        ]
+  f2 $@ SetFigAttrs
+      [ (["xaxis", "major_label_orientation"], LiteralValue (pi / 8))
+      , (["xgrid", "grid_line_alpha"]        , LiteralValue 0.3)
+      , (["ygrid", "grid_line_alpha"]        , LiteralValue 0.3)
+      , ( ["xgrid", "major_label_overrides"]
+        , LiteralValue $ (("Pt#" <>) . tshow) <$> [1 .. n]
+        )
+      ]
 
-    f2 $@ AddGlyph
-        "line"
-        ds
-        [ ("x"     , DataField "x")
-        , ("y"     , DataField "cos")
-        , ("color" , DataValue "#11cc22")
-        , ("alpha" , DataValue 0.7)
-        , ("legend", DataValue "COS Curve")
-        ]
+  f2 $@ AddGlyph
+      "line"
+      ds
+      [ ("x"     , DataField "x")
+      , ("y"     , DataField "cos")
+      , ("color" , DataValue "#11cc22")
+      , ("alpha" , DataValue 0.7)
+      , ("legend", DataValue "COS Curve")
+      ]
 
-    f1 $@ AddLayout
-        "Span"
-        [ ("location"  , LiteralValue 0.0)
-        , ("line_color", DataValue "blue")
-        , ("line_alpha", LiteralValue 0.5)
-        , ("dimension" , LiteralValue "width")
-        , ("line_width", LiteralValue 1)
-        ]
-    f1 $@ AddLayout
-        "Span"
-        [ ("location"  , LiteralValue 0.0)
-        , ("line_color", DataValue "red")
-        , ("line_alpha", LiteralValue 0.5)
-        , ("dimension" , LiteralValue "height")
-        , ("line_width", LiteralValue 1)
-        ]
+  f1 $@ AddLayout
+      "Span"
+      [ ("location"  , LiteralValue 0.0)
+      , ("line_color", DataValue "blue")
+      , ("line_alpha", LiteralValue 0.5)
+      , ("dimension" , LiteralValue "width")
+      , ("line_width", LiteralValue 1)
+      ]
+  f1 $@ AddLayout
+      "Span"
+      [ ("location"  , LiteralValue 0.0)
+      , ("line_color", DataValue "red")
+      , ("line_alpha", LiteralValue 0.5)
+      , ("dimension" , LiteralValue "height")
+      , ("line_width", LiteralValue 1)
+      ]
 
-    f2 $@ SetFigAttrs
-        [ ( ["yaxis", "ticker"]
-            , NewBokehObj
-                "BasicTicker"
-                [ ("min_interval", LiteralValue 0.01)
-                , ("max_interval", LiteralValue 5.0)
-                ]
-            )
-        ]
+  f2 $@ SetFigAttrs
+      [ ( ["yaxis", "ticker"]
+        , NewBokehObj
+            "BasicTicker"
+            [ ("min_interval", LiteralValue 0.01)
+            , ("max_interval", LiteralValue 5.0)
+            ]
+        )
+      ]
 
-    f2 $@ SetGlyphAttrs
-        "HoverTool"
-        [ (["active"]  , LiteralValue False)
-        , (["tooltips"], LiteralValue [["DataSeries", "$name"]])
-        ]
+  f2 $@ SetGlyphAttrs
+      "HoverTool"
+      [ (["active"]  , LiteralValue False)
+      , (["tooltips"], LiteralValue [["DataSeries", "$name"]])
+      ]
 
-    f2 $@ SetGlyphAttrs
-        "Legend"
-        [ (["location"]             , LiteralValue "top_left")
-        , (["click_policy"]         , LiteralValue "hide")
-        , (["background_fill_alpha"], LiteralValue 0.6)
-        ]
+  f2 $@ SetGlyphAttrs
+      "Legend"
+      [ (["location"]             , LiteralValue "top_left")
+      , (["click_policy"]         , LiteralValue "hide")
+      , (["background_fill_alpha"], LiteralValue 0.6)
+      ]
 
-    if True
-        then do -- method 1
-            _sharedX <- linkAxes pg "x_range" [f1, f2]
-            _sharedY <- linkAxes pg "y_range" [f1, f2]
-            pure ()
-        else do -- method 2
-            sharedX <- defineAxis pg
-            sharedY <- defineAxis pg
+  if True
+      then do -- method 1
+          _sharedX <- linkAxes pg "x_range" [f1, f2]
+          _sharedY <- linkAxes pg "y_range" [f1, f2]
+          pure ()
+      else do -- method 2
+          sharedX <- defineAxis pg
+          sharedY <- defineAxis pg
 
-            linkAxis sharedX "x_range" f1
-            linkAxis sharedY "y_range" f1
+          linkAxis sharedX "x_range" f1
+          linkAxis sharedY "y_range" f1
 
-            linkAxis sharedX "x_range" f2
-            linkAxis sharedY "y_range" f2
+          linkAxis sharedX "x_range" f2
+          linkAxis sharedY "y_range" f2
 
-    return ()
+  showPlot
+      w1
+      "gridplot"
+      (JsArray [JsArray [JsFigure f1], JsArray [JsFigure f2]])
+      [ ("merge_tools", LiteralValue False)
+      , ("sizing_mode", LiteralValue "stretch_both")
+      ]
+      "" -- empty means html body
+
+  return ()
+
 `;
 
 export class HaduiWSC extends HazeWSC {

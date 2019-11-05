@@ -20,13 +20,13 @@ ppoc :: UIO ()
 ppoc = do
     let n = 20
 
-    showPlot "g1" $ \pg -> do
+    uiPlot "g1" $ \pg -> do
 
         w1   <- openPlotWindow pg "w1"
 
         x    <- generateSeries n fromIntegral
         ySin <- generateSeries n $ sin . fromIntegral
-        yCos <- generateSeries n $ sin . fromIntegral
+        yCos <- generateSeries n $ cos . fromIntegral
         ds   <- putDataSource w1 [("x", x), ("sin", ySin), ("cos", yCos)]
 
         f1   <- addPlotFigure
@@ -135,5 +135,14 @@ ppoc = do
 
                 linkAxis sharedX "x_range" f2
                 linkAxis sharedY "y_range" f2
+
+        showPlot
+            w1
+            "gridplot"
+            (JsArray [JsArray [JsFigure f1], JsArray [JsFigure f2]])
+            [ ("merge_tools", LiteralValue False)
+            , ("sizing_mode", LiteralValue "stretch_both")
+            ]
+            "" -- empty means html body
 
         return ()

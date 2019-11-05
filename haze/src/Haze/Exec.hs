@@ -21,6 +21,8 @@ where
 import           UIO
 import           HaduiUtil
 
+import           Data.Foldable                  ( foldrM )
+
 import qualified RIO.Text                      as T
 import           Text.Printf
 import qualified Data.ByteString.Builder       as BSB
@@ -58,9 +60,13 @@ value: #{v}
             <> "({\n"
             <> compileBokehArgs args
             <> "})\n"
+    JsNull -> "null"
+    JsArray jsa ->
+        (foldl' (\b v -> b <> compileBokehValue v <> ", ") "[ " jsa) <> "]"
+    JsFigure fig -> "fig" <> (display $ figureNo fig)
 
 compileBokehArgs :: [(ArgName, BokehValue)] -> Utf8Builder
-compileBokehArgs m = (foldl' nv " " m) <> ""
+compileBokehArgs m = (foldl' nv "" m) <> ""
   where
     nv p (n, v) =
         p <> "  " <> display n <> ": " <> compileBokehValue v <> ",\n"
@@ -133,14 +139,19 @@ outputPlot wsc pg = do
 outputWin :: WS.Connection -> PlotWindow -> UIO ()
 outputWin wsc pw = do
     -- send binary packets for column data, return cumulated column name list
-    cnl <- foldrDeque processCDSQ [] dsiw
+    cnl  <- foldrDeque processCDSQ [] dsiw
     -- generate plot code for all figures into a 'Utf8Builder'
-    pcb <- foldM outputFigure mempty =<< (readIORef $ figuresInWindow pw)
+    pcb0 <- foldrM outputFigure mempty =<< (readIORef $ figuresInWindow pw)
+    -- generate layout code, append to plot code builder
+    pls  <- readIORef $ plotLayouts pw
+    let pcb1 = foldr compileLayout pcb0 $ pls
+    -- send the data to browser for actual plotting
     let !plotCode =
             utf8BuilderToText
-                $  "(pgid, pwid, cdsa)=>{\n\n"
-    -- full plot code of a window is wrapped in a functon like this
-                <> pcb
+            -- full plot code of a window is wrapped in a functon like this
+                $  "(pgid, pwid, cdsa)=>{\nconst bkh=Bokeh, plt=bkh.Plotting;\n"
+                -- <> "debugger; \n"
+                <> pcb1
                 <> "\n}\n"
     wsSendText
         wsc
@@ -149,7 +160,6 @@ outputWin wsc pw = do
 , "name": "plotWin"
 , "args": [#{pgid}, #{pwid}, #{cnl}, #{plotCode}]
 }|]
-
   where
     !dsiw = dsInWindow pw
     !pwid = plotWinId pw
@@ -166,20 +176,41 @@ outputWin wsc pw = do
         return $ Map.keys cds : cnl
 
 
-outputFigure :: Utf8Builder -> PlotFigure -> UIO Utf8Builder
-outputFigure pcb pf = do
-    let fcb0 = pcb <> "(async function(fig) {\n" -- <> "debugger;\n"
+compileLayout :: PlotLayout -> Utf8Builder -> Utf8Builder
+compileLayout pl pcb =
+    pcb
+        -- <> "debugger;\n"
+        <> "plt.show(plt."
+        <> (display $ layoutMethod pl)
+        <> "("
+        <> (compileBokehValue $ layoutChildren pl)
+        <> ", {\n"
+        <> (compileBokehDict $ layoutOptions pl)
+        <> "}), "
+        <> (display $ layoutTarget pl)
+        <> ");\n"
+
+
+outputFigure :: PlotFigure -> Utf8Builder -> UIO Utf8Builder
+outputFigure pf pcb = do
+    let figNo = figureNo pf
+    figArgs <- readIORef $ figureArgs pf
+    let fcb0 =
+            pcb -- <> "debugger;\n"
+                <> "const fig"
+                <> display figNo
+                <> " = plt.figure({\n"
+                <> compileBokehDict figArgs
+                <> "});\nvar fig = fig"
+                <> display figNo
+                <> ";\n"
+
     fops <- readIORef $ figureOps pf
     let fcb1 = foldr compileFigOp fcb0 fops
     laxs <- readIORef $ linkedAxes pf
     let fcb2 = foldr (compileAxisLink pgid) fcb1 $ Map.assocs laxs
-        fcb3 = fcb2 <> "Bokeh.Plotting.show(fig);\n})"
-    figArgs <- readIORef $ figureArgs pf
-    return
-        $  fcb3
-        <> "(Bokeh.Plotting.figure({"
-        <> compileBokehDict figArgs
-        <> "}))\n"
+
+    return fcb2
   where
     !pw   = plotWindow pf
     !pg   = plotGroup pw
