@@ -10,8 +10,10 @@
 {-# LANGUAGE GADTs #-}
 
 module Haze
-    ( module Haze.DSL
-    -- helpers
+    (
+    -- * The plotting DSL    
+      module Haze.DSL
+    -- * helpers on data generation
     , generateSeries
     , iterateSeries
     )
@@ -24,8 +26,6 @@ import qualified RIO.Vector.Storable           as VS
 import           Haze.Types
 import           Haze.DSL
 
-
--- | helpers on data generation
 
 generateSeries :: MonadIO m => Int -> (Int -> Double) -> m ColumnData
 generateSeries n g = liftIO $ VS.thaw $ VS.generate n g
