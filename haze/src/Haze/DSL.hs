@@ -46,11 +46,11 @@ module Haze.DSL
     , ColumnDataSource
     , ColumnName
     , ColumnData
-    , DataField(..)
-    , DataValue(..)
-    , NewBokehObj(..)
     , BokehExpr(..)
-    , BokehValue
+    , dataField
+    , dataValue
+    , newBokehObj
+    , BokehValue(..)
 -- * Helper stuff
     , jsNull
     )
@@ -93,11 +93,11 @@ openWindow winId plotAct = Plot $ \pg ->
         (pg { pltWins = pw' : pltWins pg }, WinRef wr)
 
 -- | put a data source into current plot window
-putDataSource :: ColumnDataSource -> PlotWin DataSourceRef
-putDataSource cds = PlotWin $ \pw ->
+putDataSource :: [(ColumnName, ColumnData)] -> PlotWin DataSourceRef
+putDataSource cdl = PlotWin $ \pw ->
     let !cdss = colDataSrcs pw
         !dsr  = DataSourceRef $ length cdss
-    in  (pw { colDataSrcs = cds : cdss }, dsr)
+    in  (pw { colDataSrcs = Map.fromList cdl : cdss }, dsr)
 
 -- | Create a new Figure for plotting.
 -- see:

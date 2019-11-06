@@ -27,7 +27,8 @@ instance Applicative Plot where
     pure x = Plot $ \pg -> (pg, x)
     (<*>) = ap
 instance Monad Plot where
-    m >>= f = Plot $ \pg -> let (pg', r) = doPlot m pg in doPlot (f r) pg'
+    m >>= f =
+        Plot $ \pg -> let !(pg', r) = doPlot m pg in doPlot (f $! r) $!! pg'
 
 -- | the pure monad to plot a window
 newtype PlotWin a = PlotWin { doPlotWin :: PltWin -> (PltWin, a) }
@@ -38,7 +39,8 @@ instance Applicative PlotWin where
     (<*>) = ap
 instance Monad PlotWin where
     m >>= f =
-        PlotWin $ \pw -> let (pw', r) = doPlotWin m pw in doPlotWin (f r) pw'
+        PlotWin $ \pw ->
+            let !(pw', r) = doPlotWin m pw in doPlotWin (f $! r) $!! pw'
 
 -- | the pure monad to plot a figure
 newtype PlotFig a = PlotFig { doPlotFig :: PltFig -> (PltFig, a) }
@@ -49,5 +51,6 @@ instance Applicative PlotFig where
     (<*>) = ap
 instance Monad PlotFig where
     m >>= f =
-        PlotFig $ \pf -> let (pf', r) = doPlotFig m pf in doPlotFig (f r) pf'
+        PlotFig $ \pf ->
+            let !(pf', r) = doPlotFig m pf in doPlotFig (f $! r) $!! pf'
 

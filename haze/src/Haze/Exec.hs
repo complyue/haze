@@ -48,7 +48,7 @@ uiPlot
 uiPlot grpId plotAct =
     (ask >>= \uio ->
         let
-            gil     = haduiGIL uio
+            !gil    = haduiGIL uio
             (pg, x) = doPlot
                 plotAct
                 PltGrp { pgId = grpId, numSyncAxes = 0, pltWins = [] }
@@ -60,7 +60,7 @@ uiPlot grpId plotAct =
                         $  "No ws in context to plot group "
                         <> grpId
                     return x
-                False -> readMVar gil >>= plotToUI pg x
+                False -> readMVar gil >>= (plotToUI $! pg) x
     )
   where
     plotToUI :: PltGrp -> a -> WS.Connection -> UIO a
@@ -75,11 +75,16 @@ uiPlot grpId plotAct =
 
         -- report total data size to UI, get the user some intuition for
         -- how long he/she should wait before all data visually rendered
-        let tds = totalDataSize pg
+        let (nWins, nFigs, tds) = statsPlot pg
         uiMsg
-            $  "total plot data size: "
-            <> (T.pack $ printf "%0.1f" (tds / 1024 / 1024))
-            <> " MB"
+            $  utf8BuilderToText
+            $  "Plotting total "
+            <> display nFigs
+            <> " figure(s) into "
+            <> display nWins
+            <> " window(s) with "
+            <> (display $ T.pack $ printf "%0.1f" $ tds / 1024 / 1024)
+            <> " MB data."
 
         -- interpret the stated resulted from DSL, by sending json
         -- cmds and binary column data to browser
@@ -202,11 +207,14 @@ compileLayout pl pcb =
         <> ");\n"
 
 
-totalDataSize :: PltGrp -> Double
-totalDataSize pg = fromIntegral tdl * fromIntegral (sizeOf (0 :: Double))
+statsPlot :: PltGrp -> (Int, Int, Double)
+statsPlot pg =
+    (nWins, nFigs, fromIntegral tdl * fromIntegral (sizeOf (0 :: Double)))
   where
-    tdl = foldl' cumWin (0 :: Int64) $ pltWins pg
-    cumWin dl pw = foldl' cumCDS dl $ colDataSrcs pw
-    cumCDS dl cds = foldl' cumCol dl $ Map.elems cds
-    cumCol dl cd = dl + (fromIntegral $ VM.length cd)
+    (nWins, nFigs, tdl) =
+        foldl' cumWin (0 :: Int, 0 :: Int, 0 :: Int64) $ pltWins pg
+    cumWin (nw, nf, dl) pw =
+        foldl' cumCDS (nw + 1, nf + length (pltFigs pw), dl) $ colDataSrcs pw
+    cumCDS (nw, nf, dl) cds = foldl' cumCol (nw, nf, dl) $ Map.elems cds
+    cumCol (nw, nf, dl) cd = (nw, nf, dl + (fromIntegral $ VM.length cd))
 
