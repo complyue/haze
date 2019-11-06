@@ -48,10 +48,7 @@ instance Functor Plot where
     fmap f p = Plot $ \pg -> let (_, a) = doPlot p pg in (pg, f a)
 instance Applicative Plot where
     pure x = Plot $ \pg -> (pg, x)
-    p1 <*> p2 = Plot $ \pg ->
-        let (_, f1) = doPlot p1 pg
-            (_, f2) = doPlot p2 pg
-        in  (pg, f1 f2)
+    (<*>) = ap
 instance Monad Plot where
     m >>= f = Plot $ \pg -> let (pg', r) = doPlot m pg in doPlot (f r) pg'
 instance MonadFail Plot where
@@ -62,10 +59,7 @@ instance Functor PlotWin where
     fmap f p = PlotWin $ \pw -> let (_, a) = doPlotWin p pw in (pw, f a)
 instance Applicative PlotWin where
     pure x = PlotWin $ \pw -> (pw, x)
-    p1 <*> p2 = PlotWin $ \pw ->
-        let (_, f1) = doPlotWin p1 pw
-            (_, f2) = doPlotWin p2 pw
-        in  (pw, f1 f2)
+    (<*>) = ap
 instance Monad PlotWin where
     m >>= f =
         PlotWin $ \pw -> let (pw', r) = doPlotWin m pw in doPlotWin (f r) pw'
@@ -77,10 +71,7 @@ instance Functor PlotFig where
     fmap f p = PlotFig $ \pf -> let (_, a) = doPlotFig p pf in (pf, f a)
 instance Applicative PlotFig where
     pure x = PlotFig $ \pf -> (pf, x)
-    p1 <*> p2 = PlotFig $ \pf ->
-        let (_, f1) = doPlotFig p1 pf
-            (_, f2) = doPlotFig p2 pf
-        in  (pf, f1 f2)
+    (<*>) = ap
 instance Monad PlotFig where
     m >>= f =
         PlotFig $ \pf -> let (pf', r) = doPlotFig m pf in doPlotFig (f r) pf'
