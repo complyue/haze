@@ -53,8 +53,8 @@ instance Applicative Plot where
             (_, f2) = doPlot p2 pg
         in  (pg, f1 f2)
 instance Monad Plot where
-    return = pure
     m >>= f = Plot $ \pg -> let (pg', r) = doPlot m pg in doPlot (f r) pg'
+instance MonadFail Plot where
 
 -- | the pure monad to plot a window
 newtype PlotWin a = PlotWin { doPlotWin :: PW -> (PW, a) }
@@ -67,9 +67,9 @@ instance Applicative PlotWin where
             (_, f2) = doPlotWin p2 pw
         in  (pw, f1 f2)
 instance Monad PlotWin where
-    return = pure
     m >>= f =
         PlotWin $ \pw -> let (pw', r) = doPlotWin m pw in doPlotWin (f r) pw'
+instance MonadFail PlotWin where
 
 -- | the pure monad to plot a figure
 newtype PlotFig a = PlotFig { doPlotFig :: Fig -> (Fig, a) }
@@ -82,18 +82,19 @@ instance Applicative PlotFig where
             (_, f2) = doPlotFig p2 pf
         in  (pf, f1 f2)
 instance Monad PlotFig where
-    return = pure
     m >>= f =
         PlotFig $ \pf -> let (pf', r) = doPlotFig m pf in doPlotFig (f r) pf'
+instance MonadFail PlotFig where
 
 
-gPlot :: GroupId -> Plot () -> UIO ()
-gPlot pgId plotAct = do
-    let (pg, _) = doPlot plotAct PG { pgId = pgId, lxs = 0, pws = [] }
+uiPlot :: GroupId -> Plot a -> UIO a
+uiPlot pgId plotAct = do
+    let (pg, x) = doPlot plotAct PG { pgId = pgId, lxs = 0, pws = [] }
 
     logInfo $ "plot has " <> (display $ length $ pws pg) <> " windows."
 
-    return ()
+    return x
+
 
 defineAxis :: Plot AxisRef
 defineAxis = Plot $ \pg -> let !ar = lxs pg in (pg { lxs = ar + 1 }, ar)
