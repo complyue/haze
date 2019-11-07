@@ -9,7 +9,7 @@ export const HaduiDefaultStmt =
   `let
 
   -- data crunching algorithm, normally crafted in a module file
-  -- within the project underhood
+  -- within the project underhood, not here ad-hoc
   prepareData :: UIO (ColumnData, ColumnData, ColumnData)
   prepareData = do
       -- data parameter(s)
@@ -23,9 +23,9 @@ export const HaduiDefaultStmt =
       return (x, ySin, yCos)
 
   -- the plot specification, normally crafted in a module file
-  -- within the project underhood
-  doPlot :: (ColumnData, ColumnData, ColumnData) -> Plot ()
-  doPlot (x, ySin, yCos) = do
+  -- within the project underhood, not here ad-hoc
+  plotSinCos :: (ColumnData, ColumnData, ColumnData) -> Plot ()
+  plotSinCos (x, ySin, yCos) = do
         -- define axes to be synchronized
       sharedX <- defineAxis
       sharedY <- defineAxis
@@ -145,7 +145,7 @@ in
   -- a plot specification, thus get a plot definition (with data in it),
   -- this definition passed to 'uiPlot', to trigger the web browser for
   -- visualization.
-  doPlot <$> prepareData >>= uiPlot "demoGroup1"
+  plotSinCos <$> prepareData >>= uiPlot "demoGroup1"
 
 `;
 
