@@ -46,8 +46,8 @@ export class HazeWSC extends WSC {
   async plotWin(pgid, pwid, cnl, plotCode) {
     // take the binary chunks, temporarily store the data,
     // open a plot window which will come retrive the data.
-    let bins = this.bins;
-    this.bins = [];
+    let bins = Array.from(this.bins);
+    this.bins.length = 0;
 
     let winName = "plot@" + pgid + "%" + pwid;
     plotData[winName] = {
