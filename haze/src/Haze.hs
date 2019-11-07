@@ -19,6 +19,7 @@ module Haze
     -- * Helpers on data manipulation
     , generateSeries
     , iterateSeries
+    , mapSeries
     , seriesLength
     )
 where
@@ -26,19 +27,20 @@ where
 import           UIO
 
 import qualified RIO.Vector.Storable           as VS
-import qualified Data.Vector.Storable.Mutable  as VSM'
 
 import           Haze.Types
 import           Haze.DSL
 
 
-generateSeries :: MonadIO m => Int -> (Int -> Double) -> m ColumnData
-generateSeries n g = liftIO $ VS.thaw $ VS.generate n g
+generateSeries :: Int -> (Int -> Double) -> ColumnData
+generateSeries n g = VS.generate n g
 
-iterateSeries
-    :: MonadIO m => Int -> (Double -> Double) -> Double -> m ColumnData
-iterateSeries n f x = liftIO $ VS.thaw $ VS.iterateN n f x
+iterateSeries :: Int -> (Double -> Double) -> Double -> ColumnData
+iterateSeries n f x = VS.iterateN n f x
+
+mapSeries :: (Double -> Double) -> ColumnData -> ColumnData
+mapSeries f s = VS.map f s
 
 seriesLength :: ColumnData -> Int
-seriesLength = VSM'.length
+seriesLength = VS.length
 

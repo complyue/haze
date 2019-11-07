@@ -29,7 +29,7 @@ import           HaduiUtil
 import qualified RIO.Text                      as T
 import           Text.Printf
 
-import qualified Data.Vector.Storable.Mutable  as VM
+import qualified Data.Vector.Storable          as VS
 
 import           Foreign
 
@@ -230,5 +230,5 @@ statsPlot pg =
     cumCDS (nw, nf, nc, dl) cds =
         foldl' cumCol (nw, nf, nc, dl) $ Map.elems cds
     cumCol (nw, nf, nc, dl) cd =
-        (nw, nf, nc + 1, dl + (fromIntegral $ VM.length cd))
+        (nw, nf, nc + 1, dl + (fromIntegral $ VS.length cd))
 

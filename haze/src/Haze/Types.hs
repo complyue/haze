@@ -53,7 +53,7 @@ type ColumnName = Text
 --
 -- note js within any browser inherently has no support of int64, 
 -- is float32,int32,int16,int8 worth to be added beyond just float64?
-type ColumnData = VS.MVector (PrimState IO) Double
+type ColumnData = VS.Vector Double
 
 
 -- * Literal & DSL yielded values to be compiled into JavaScript,
