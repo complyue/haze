@@ -14,6 +14,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DerivingStrategies #-}
 
+-- | Types shared among other modules are defined here to avoid cicular imports
+
 module Haze.Types where
 
 import           UIO
@@ -26,7 +28,7 @@ import qualified Data.Aeson                    as A
 import qualified Data.ByteString.Builder       as BSB
 
 
--- Types to name arguments & return values of API functions
+-- * Types to name arguments & return values of API functions
 
 type PlotGrpId = Text
 type PlotWinId = Text
@@ -49,26 +51,27 @@ type ColumnDataSource = Map ColumnName ColumnData
 type ColumnName = Text
 -- | float64 is used uniformly for column data for now,
 -- tho BokehJS can support more types, let's keep it simple.
+--
 -- note js within any browser inherently has no support of int64, 
--- float32/int32/int16/int8 worth to be added beyond just float64?
+-- is float32,int32,int16,int8 worth to be added beyond just float64?
 type ColumnData = VS.MVector (PrimState IO) Double
 
 
--- literal & DSL yielded values to be compiled into JavaScript,
+-- * Literal & DSL yielded values to be compiled into JavaScript,
 -- then to be further messing with BokehJS at browser site
 
 data BokehExpr =
--- | literal representation in JavaScript
+    -- | literal representation in JavaScript
     JsRepr Text
--- | reference a column from associated 'ColumnDataSource', in form of:
--- >>> {field: 'ccc'}
+    -- | reference a column from associated 'ColumnDataSource', in form of:
+    -- > {field: "ccc"}
     | DataField ColumnName
--- | some BokehJS methods work better (or even only work) with arg value
--- in form of:
--- >>> {value: vvv}
+    -- | some BokehJS methods work better (or even only work) with arg value
+    -- in form of:
+    -- > {value: vvv}
     | DataValue BokehExpr
--- | construct a BokehJS object in JavaScript with specified constructor and
--- arguments, the 'CtorName' must resident within the `Bokeh` namespace
+    -- | construct a BokehJS object in JavaScript with specified constructor and
+    -- arguments, the 'CtorName' must resident within the `Bokeh` namespace
     | NewBokehObj CtorName [(ArgName, BokehExpr)]
 
     deriving (Generic, NFData)
@@ -107,7 +110,8 @@ instance BokehValue BokehExpr where
     bokehExpr = id
 
 -- | this enables the simulation of heterogenous lists of 'BokehValue's, like:
--- >>> [bokehExpr x, bokehExpr y, ...]
+--
+-- > [bokehExpr x, bokehExpr y, ...]
 instance BokehValue [BokehExpr] where
     bokehExpr l =
         JsRepr
@@ -130,7 +134,8 @@ instance BokehValue FigRef where
 -- | map a homogeneous list of 'BokehValue' to an array of the values into JavaScript
 --
 -- to simulate a heterogeneous list, use:
--- >>> [bokehExpr x, bokehExpr y, ...]
+--
+-- > [bokehExpr x, bokehExpr y, ...]
 instance BokehValue v => BokehValue [v] where
     bokehExpr l =
         JsRepr
@@ -155,7 +160,7 @@ jsArgMap :: Map ArgName BokehExpr -> Utf8Builder
 jsArgMap d = jsArgList $ Map.assocs d
 
 
--- ADTs to collect the plotting specs from DSL
+-- * ADTs to collect the plotting specs from DSL
 
 data PltGrp = PltGrp {
     pgId :: Text

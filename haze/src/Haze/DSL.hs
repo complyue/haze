@@ -10,6 +10,9 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE GADTs #-}
 
+-- | The embedded DSL provided by Haze to facilitate plotting specification
+-- in pure monads. 
+
 module Haze.DSL
     (
 -- * Pure monads for plotting

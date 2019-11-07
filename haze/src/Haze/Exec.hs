@@ -9,9 +9,11 @@
 {-# LANGUAGE GADTs #-}
 
 -- | The Haze executor:
---   * transfers binary data to js site (the browser);
---   * transpiles the plotting DSL (in Haskell) to Javascript,
---     then send to js site (the browser) for execution.
+--
+-- - transfers binary data to js site (the browser);
+--
+-- - compile the plotting DSL (in Haskell) to JavaScript,
+--   then send to js site (the browser) for execution.
 
 module Haze.Exec
     ( uiPlot
