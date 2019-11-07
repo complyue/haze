@@ -25,9 +25,22 @@ export const HaduiDefaultStmt =
           -- each window can have one or more figures
           f1 <-
               figure
-                      [ ("title"           , "SIN Figure")
-                      , ("toolbar_location", "below")
-                      , ("sizing_mode"     , "stretch_both")
+                      [ ("title"           , bokehExpr "SIN Figure")
+                      , ("toolbar_location", bokehExpr "right")
+                      , ( "tools"
+                        , bokehExpr
+                            [ "crosshair"
+                            , "pan"
+                            , "xwheel_zoom"
+                            , "ywheel_zoom"
+                            , "box_zoom"
+                            , "hover"
+                            , "undo"
+                            , "redo"
+                            , "reset"
+                            ]
+                        )
+                      , ("sizing_mode", bokehExpr "stretch_both")
                       ]
                   $ do
                         setFigAttrs
@@ -72,9 +85,22 @@ export const HaduiDefaultStmt =
 
           f2 <-
               figure
-                      [ ("title"           , "COS Figure")
-                      , ("toolbar_location", "above")
-                      , ("sizing_mode"     , "stretch_both")
+                      [ ("title"           , bokehExpr "COS Figure")
+                      , ("toolbar_location", bokehExpr "right")
+                      , ( "tools"
+                        , bokehExpr
+                            [ "crosshair"
+                            , "pan"
+                            , "xwheel_zoom"
+                            , "ywheel_zoom"
+                            , "box_zoom"
+                            , "hover"
+                            , "undo"
+                            , "redo"
+                            , "reset"
+                            ]
+                        )
+                      , ("sizing_mode", bokehExpr "stretch_both")
                       ]
                   $ do
                         setFigAttrs
@@ -118,6 +144,8 @@ export const HaduiDefaultStmt =
                             , (["click_policy"]         , bokehExpr "hide")
                             , (["background_fill_alpha"], bokehExpr 0.6)
                             ]
+                        linkFigAxis "x_range" sharedX
+                        linkFigAxis "y_range" sharedY
 
           showPlot
               "gridplot"
@@ -126,8 +154,6 @@ export const HaduiDefaultStmt =
               , ("sizing_mode", bokehExpr "stretch_both")
               ]
               jsNull -- null targets the plot to html body element
-
-  print "Plot done."
 `;
 
 export class HaduiWSC extends HazeWSC {

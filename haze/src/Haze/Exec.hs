@@ -14,6 +14,9 @@
 --
 -- - compile the plotting DSL (in Haskell) to JavaScript,
 --   then send to js site (the browser) for execution.
+--
+-- You normally just import 'Haze' to use the DSL, this module should be
+-- considered implementation details of Haze.
 
 module Haze.Exec
     ( uiPlot
@@ -77,7 +80,7 @@ uiPlot grpId plotAct =
 
         -- report total data size to UI, get the user some intuition for
         -- how long he/she should wait before all data visually rendered
-        let (nWins, nFigs, tds) = statsPlot pg
+        let (nWins, nFigs, nCols, tds) = statsPlot pg
         uiMsg
             $  utf8BuilderToText
             $  "Plotting total "
@@ -86,7 +89,9 @@ uiPlot grpId plotAct =
             <> display nWins
             <> " window(s) with "
             <> (display $ T.pack $ printf "%0.1f" $ tds / 1024 / 1024)
-            <> " MB data."
+            <> " MB data from "
+            <> display nCols
+            <> " column(s)."
 
         -- interpret the stated resulted from DSL, by sending json
         -- cmds and binary column data to browser
@@ -102,9 +107,9 @@ sendWindow pgid wsc pw = do
     -- full plot code of a window is wrapped in a js functon like this
     let !pcb0 =
             "(pgid, pwid, cdsa)=>{\nconst bkh=Bokeh, plt=bkh.Plotting;\n"
-                -- <> "debugger; \n"
-                <> "  document.title = ''+pgid+'#'+pwid;\n"
-                <> "  const figs = [];\n"
+                <> "debugger;\n"
+                <> "document.title = ''+pgid+'#'+pwid;\n"
+                <> "const figs = [];\n"
     -- generate plot code for all figures into a 'Utf8Builder'
     let !pcb1     = foldr (compileFigure pgid) pcb0 $ pltFigs pw
 -- generate layout code, append to plot code builder
@@ -121,7 +126,7 @@ sendWindow pgid wsc pw = do
 
   where
     processCDS cnl cds = do
-        traverse_ (wsSendData wsc) $ reverse $ Map.elems cds
+        traverse_ (wsSendData wsc) $! reverse $! Map.elems cds
         return $ Map.keys cds : cnl
 
 
@@ -197,7 +202,7 @@ compileAxisLink pgid pcb (rng, axis) =
 compileLayout :: PltLay -> Utf8Builder -> Utf8Builder
 compileLayout pl pcb =
     pcb
-        -- <> "debugger;\n"
+        <> "debugger;\n"
         <> "plt.show(plt."
         <> (display $ layMethod pl)
         <> "("
@@ -209,14 +214,21 @@ compileLayout pl pcb =
         <> ");\n"
 
 
-statsPlot :: PltGrp -> (Int, Int, Double)
+statsPlot :: PltGrp -> (Int, Int, Int, Double)
 statsPlot pg =
-    (nWins, nFigs, fromIntegral tdl * fromIntegral (sizeOf (0 :: Double)))
+    ( nWins
+    , nFigs
+    , nCols
+    , fromIntegral tdl * fromIntegral (sizeOf (0 :: Double))
+    )
   where
-    (nWins, nFigs, tdl) =
-        foldl' cumWin (0 :: Int, 0 :: Int, 0 :: Int64) $ pltWins pg
-    cumWin (nw, nf, dl) pw =
-        foldl' cumCDS (nw + 1, nf + length (pltFigs pw), dl) $ colDataSrcs pw
-    cumCDS (nw, nf, dl) cds = foldl' cumCol (nw, nf, dl) $ Map.elems cds
-    cumCol (nw, nf, dl) cd = (nw, nf, dl + (fromIntegral $ VM.length cd))
+    !(nWins, nFigs, nCols, tdl) =
+        foldl' cumWin (0 :: Int, 0 :: Int, 0 :: Int, 0 :: Int64) $ pltWins pg
+    cumWin (nw, nf, nc, dl) pw =
+        foldl' cumCDS (nw + 1, nf + length (pltFigs pw), nc, dl)
+            $ colDataSrcs pw
+    cumCDS (nw, nf, nc, dl) cds =
+        foldl' cumCol (nw, nf, nc, dl) $ Map.elems cds
+    cumCol (nw, nf, nc, dl) cd =
+        (nw, nf, nc + 1, dl + (fromIntegral $ VM.length cd))
 

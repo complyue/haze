@@ -12,6 +12,9 @@
 
 -- | The embedded DSL provided by Haze to facilitate plotting specification
 -- in pure monads. 
+--
+-- You normally just import 'Haze' to use the DSL, as 'Haze' re-exports this
+-- module.
 
 module Haze.DSL
     (
@@ -84,16 +87,15 @@ openWindow
                   -- computation
     -> Plot WinRef
 openWindow winId plotAct = Plot $ \pg ->
-    let
-        !wr = length $ pltWins pg
-        !pw = PltWin { pwId        = winId
-                     , colDataSrcs = []
-                     , pltFigs     = []
-                     , pltLays     = []
-                     }
-        !(pw', _) = doPlotWin plotAct pw
-    in
-        (pg { pltWins = pw' : pltWins pg }, WinRef wr)
+    let !wr      = length $ pltWins pg
+        !(pw, _) = doPlotWin
+            plotAct
+            PltWin { pwId        = winId
+                   , colDataSrcs = []
+                   , pltFigs     = []
+                   , pltLays     = []
+                   }
+    in  (pg { pltWins = pw : pltWins pg }, WinRef wr)
 
 -- | put a data source into current plot window
 putDataSource :: [(ColumnName, ColumnData)] -> PlotWin DataSourceRef

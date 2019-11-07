@@ -9,12 +9,11 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DerivingStrategies #-}
 
 -- | Types shared among other modules are defined here to avoid cicular imports
+--
+-- You normally just import 'Haze' to use the DSL, and only need to import
+-- this module for some reason you need sth not re-exported there.
 
 module Haze.Types where
 
@@ -39,10 +38,10 @@ type MethodName = Text
 type AttrName = Text
 type RangeName = Text
 
-newtype AxisRef = AxisRef Int  deriving (Eq, Ord, Read, Show, Generic, NFData)
-newtype WinRef = WinRef Int  deriving (Eq, Ord, Read, Show, Generic, NFData)
-newtype DataSourceRef = DataSourceRef Int  deriving (Eq, Ord, Read, Show, Generic, NFData)
-newtype FigRef = FigRef Int  deriving (Eq, Ord, Read, Show, Generic, NFData)
+newtype AxisRef = AxisRef Int
+newtype WinRef = WinRef Int
+newtype DataSourceRef = DataSourceRef Int
+newtype FigRef = FigRef Int
 
 -- | DataSource is at the core of Bokeh's data model
 -- though other concrete types exist in Bokeh,
@@ -73,8 +72,6 @@ data BokehExpr =
     -- | construct a BokehJS object in JavaScript with specified constructor and
     -- arguments, the 'CtorName' must resident within the `Bokeh` namespace
     | NewBokehObj CtorName [(ArgName, BokehExpr)]
-
-    deriving (Generic, NFData)
 
 bokehJsRepr :: BokehExpr -> Utf8Builder
 bokehJsRepr = \case
@@ -111,12 +108,12 @@ instance BokehValue BokehExpr where
 
 -- | this enables the simulation of heterogenous lists of 'BokehValue's, like:
 --
--- > [bokehExpr x, bokehExpr y, ...]
+-- > [ bokehExpr x, bokehExpr y, ...]
 instance BokehValue [BokehExpr] where
     bokehExpr l =
         JsRepr
             $  utf8BuilderToText
-            $  (foldl' (\b i -> b <> bokehJsRepr i <> ", ") "[" l)
+            $  (foldl' (\b i -> b <> bokehJsRepr i <> ", ") "[ " l)
             <> "]"
 
 -- | this enables value expressions in Haskell to be written without any boxing,
@@ -126,21 +123,31 @@ instance {-# OVERLAPPABLE #-} (A.ToJSON j) => BokehValue j where
     bokehExpr = JsRepr . utf8BuilderToText . jsStringify
 
 instance BokehValue DataSourceRef where
-    bokehExpr r = JsRepr $ utf8BuilderToText $ "cdsa[" <> displayShow r <> "]"
+    bokehExpr r =
+        JsRepr
+            $  utf8BuilderToText
+            $  "cdsa["
+            <> displayShow (let DataSourceRef d = r in d)
+            <> "]"
 
 instance BokehValue FigRef where
-    bokehExpr r = JsRepr $ utf8BuilderToText $ "figs[" <> displayShow r <> "]"
+    bokehExpr r =
+        JsRepr
+            $  utf8BuilderToText
+            $  "figs["
+            <> displayShow (let FigRef d = r in d)
+            <> "]"
 
 -- | map a homogeneous list of 'BokehValue' to an array of the values into JavaScript
 --
 -- to simulate a heterogeneous list, use:
 --
--- > [bokehExpr x, bokehExpr y, ...]
+-- > [ bokehExpr x, bokehExpr y, ...]
 instance BokehValue v => BokehValue [v] where
     bokehExpr l =
         JsRepr
             $  utf8BuilderToText
-            $  (foldl' (\b i -> b <> (bokehJsRepr $bokehExpr i) <> ", ") "[" l)
+            $  (foldl' (\b i -> b <> (bokehJsRepr $bokehExpr i) <> ", ") "[ " l)
             <> "]"
 
 
@@ -166,32 +173,32 @@ data PltGrp = PltGrp {
     pgId :: Text
     , numSyncAxes :: Int
     , pltWins :: [PltWin]
-} deriving (Generic, NFData)
+}
 
 data PltWin = PltWin {
     pwId :: Text
     , colDataSrcs :: [ColumnDataSource]
     , pltFigs :: [PltFig]
     , pltLays :: [PltLay]
-} deriving (Generic, NFData)
+}
 
 data PltFig = PltFig {
     figArgs :: Map ArgName BokehExpr
     , figOps :: [FigOp]
     , figLinks :: Map RangeName AxisRef
-} deriving (Generic, NFData)
+}
 
 data FigOp =
       SetFigAttrs [([AttrName], BokehExpr)]
     | AddGlyph MethodName DataSourceRef (Map ArgName BokehExpr)
     | AddLayout CtorName (Map ArgName BokehExpr)
     | SetGlyphAttrs CtorName [([AttrName], BokehExpr)]
-    deriving (Generic, NFData)
+
 
 data PltLay = PltLay {
     layMethod :: MethodName
     , layChildren :: BokehExpr
     , layOpts :: Map ArgName BokehExpr
     , layTarget :: BokehExpr
-} deriving (Generic, NFData)
+}
 
