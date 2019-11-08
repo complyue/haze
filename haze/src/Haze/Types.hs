@@ -177,6 +177,7 @@ data PltGrp = PltGrp {
 
 data PltWin = PltWin {
     pwId :: Text
+    , htmlPage :: Text
     , colDataSrcs :: [ColumnDataSource]
     , pltFigs :: [PltFig]
     , pltLays :: [PltLay]

@@ -121,7 +121,7 @@ sendWindow pgid wsc pw = do
         [aesonQQ|{
 "type": "call"
 , "name": "plotWin"
-, "args": [#{pgid}, #{pwId pw}, #{cnl}, #{plotCode}]
+, "args": [#{pgid}, #{pwId pw}, #{htmlPage pw}, #{cnl}, #{plotCode}]
 }|]
 
   where

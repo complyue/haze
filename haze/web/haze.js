@@ -43,7 +43,7 @@ window.onmessage = function(me) {
 export class HazeWSC extends WSC {
   // ws methods for plotting here
 
-  async plotWin(pgid, pwid, cnl, plotCode) {
+  async plotWin(pgid, pwid, tmpl, cnl, plotCode) {
     // take the binary chunks, temporarily store the data,
     // open a plot window which will come retrive the data.
     let bins = Array.from(this.bins);
@@ -57,6 +57,6 @@ export class HazeWSC extends WSC {
       cnl,
       plotCode
     };
-    window.open("/haze.html", winName);
+    window.open(tmpl, winName);
   }
 }

@@ -27,10 +27,12 @@ module Haze.DSL
 -- * Actions in a plot group
     , defineAxis
     , openWindow
+    , useHtmlPage
 -- * Actions in a plot window
     , putDataSource
     , figure
     , showPlot
+    , htmlBody
 -- * Actions in a plot figure
     , setFigAttrs
     , addGlyph
@@ -91,11 +93,16 @@ openWindow winId plotAct = Plot $ \pg ->
         !(pw, _) = doPlotWin
             plotAct
             PltWin { pwId        = winId
+                   , htmlPage    = "/haze.html"
                    , colDataSrcs = []
                    , pltFigs     = []
                    , pltLays     = []
                    }
     in  (pg { pltWins = pw : pltWins pg }, WinRef wr)
+
+-- | use a different Haze html template page than the default "haze.html"
+useHtmlPage :: Text -> PlotWin ()
+useHtmlPage tmpl = PlotWin $ \pw -> (pw { htmlPage = tmpl }, ())
 
 -- | put a data source into current plot window
 putDataSource :: [(ColumnName, ColumnData)] -> PlotWin DataSourceRef
@@ -181,9 +188,9 @@ linkFigAxis rng axis =
 showPlot
     :: (BokehValue c, BokehValue v)
     => MethodName -- ^ the 'MethodName' must reside within the `Bokeh.Plotting` namespace
-    -> c
-    -> [(ArgName, v)]
-    -> BokehExpr
+    -> c -- ^ the children to show
+    -> [(ArgName, v)] -- ^ args to the method
+    -> BokehExpr -- ^ target html element to contain the children
     -> PlotWin ()
 showPlot mth children args target = PlotWin $ \pw ->
     let !lays = pltLays pw
@@ -192,4 +199,8 @@ showPlot mth children args target = PlotWin $ \pw ->
                        (Map.map bokehExpr $ Map.fromList args)
                        target
     in  (pw { pltLays = lay : lays }, ())
+
+-- | use this to show the children to entire html page
+htmlBody :: BokehExpr
+htmlBody = JsRepr "document.body"
 
