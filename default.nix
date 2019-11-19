@@ -18,9 +18,6 @@ import (
           };
         };
       in {
-        # expose as a top-level Nix package too
-        haze = pkgsWithHaze.haze;
-
         # override the Haskell package set at standard locations
         haskellPackages = pkgsWithHaze;
         haskell = super.haskell // {
