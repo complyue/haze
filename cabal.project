@@ -1,2 +1,12 @@
 
 packages: */*.cabal
+
+-- to use the version of Hadui checked out locally
+packages: ../hadui/hadui
+
+-- to use a version of Hadui from github
+--source-repository-package
+--    type: git
+--    location: https://github.com/complyue/hadui
+--    subdir: hadui
+--    tag: 0.1.0.rc3
