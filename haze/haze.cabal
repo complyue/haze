@@ -1,0 +1,102 @@
+cabal-version:      2.4
+
+name:               haze
+version:            0.1.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+copyright:          2019 Compl Yue
+maintainer:         compl.yue@icloud.com
+author:             Compl Yue
+stability:          experimental
+homepage:           https://github.com/complyue/haze
+bug-reports:        https://github.com/complyue/haze/issues
+synopsis:           low-level Bokeh plotting for Hadui projects
+description:
+    Please see the README on Github at <https://github.com/complyue/haze>
+
+category:           Interactive,Plotting,Visualization,Development,Web,UI
+build-type:         Simple
+data-files:
+-- while Cabal 3.0.0.0 does it well,
+-- unfortunately Cabal 2.4.0.1 bundled with GHC 8.6.5 fails
+-- handling double star wildcards like this, 
+    -- web/**/*.html
+    -- web/**/*.js
+    -- web/**/*.css
+    -- web/**/*.png
+-- as Nix builds by compiling `Setup.hs` directly against
+-- GHC's core Cabal library, we have to explicitly list
+-- all files like this by far.
+    web/haze.html
+    web/hadui-custom.js
+    web/palettes.js
+    web/icons/bokeh-32x32.png
+    web/haze-plot.js
+    web/haze.js
+    web/vendor/bokehjs/bokeh-gl.js
+    web/vendor/bokehjs/bokeh-api.js
+    web/vendor/bokehjs/LICENSE
+    web/vendor/bokehjs/bokeh-widgets.js
+    web/vendor/bokehjs/bokeh.js
+    web/vendor/bokehjs/bokeh-tables.js
+
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+    type:     git
+    location: https://github.com/complyue/haze
+    branch:   stable
+    subdir:   haze
+
+common shared-properties
+    default-language: Haskell2010
+    build-depends:
+        ghc >=8.6,
+        base >=4.12 && <5.0,
+
+        hadui -any,
+        websockets -any,
+
+        -- TODO use acceleratehs array compatible blob types
+        vector -any,
+        containers -any,
+
+        rio -any,
+        text -any,
+        bytestring -any,
+        aeson -any,
+        aeson-qq -any,
+        unliftio -any
+    ghc-options:
+        -Wall -Wcompat -Widentities -Wincomplete-record-updates
+        -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+
+common surface-properties
+    other-modules:
+        Paths_haze
+
+library haze-internal
+    import: shared-properties
+    hs-source-dirs: src
+    exposed-modules:
+        Haze
+        Haze.DSL
+        Haze.Monad
+        Haze.Types
+        Haze.Exec
+        Paths_haze
+    autogen-modules:
+        Paths_haze
+
+library
+    import:             shared-properties
+    import:             surface-properties
+    build-depends:      haze-internal
+    reexported-modules:
+        Haze,
+        Haze.DSL,
+        Haze.Monad,
+        Haze.Types,
+        Haze.Exec,

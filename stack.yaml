@@ -1,33 +1,19 @@
-resolver: lts-14.11
+resolver: lts-14.14
 
 packages:
   - haze
 
 extra-deps:
-  # to use the version of hadui checked out locally
-  - ../hadui/hadui
-
-  # to use a version of hadui from github
-  # - github: complyue/hadui
-  #   commit: stable
+  # to use a version of Hadui from github
+  # - url: https://github.com/complyue/hadui/archive/0.1.0.rc3.tar.gz
   #   subdirs:
   #     - hadui
 
-compiler-check: match-exact
+  # to use the version of Hadui checked out locally
+  - ../hadui/hadui
 
-# CAVEATS
-#
-#   binary distributions referenced following have NO support, checkout:
-#
-# https://gitlab.haskell.org/complyue/ghc-ife-bindist/blob/master/README.md
-
-ghc-variant: ife
-
-setup-info:
-  ghc:
-    macosx-custom-ife:
-      8.6.5:
-        url: "https://gitlab.haskell.org/complyue/ghc-ife-bindist/raw/master/ghc-8.6.5-x86_64-apple-darwin.tar.bz2"
-    linux64-custom-ife:
-      8.6.5:
-        url: "https://gitlab.haskell.org/complyue/ghc-ife-bindist/raw/master/ghc-8.6.5-x86_64-unknown-linux.tar.xz"
+# Stack's Nix integration is incompatible with Hadui,
+# let stack run in `nix-shell` with Nix provided GHC
+system-ghc: true
+nix:
+  enable: false

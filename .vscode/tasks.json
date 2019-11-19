@@ -12,8 +12,7 @@
             },
             "label": "hadui-dev",
             "type": "shell",
-            "command": "cd ${workspaceRoot}; stack build --exec hadui-dev",
-            "problemMatcher": []
+            "command": "cd ${workspaceRoot}; nix-shell --run hadui-dev"
         }
     ]
 }

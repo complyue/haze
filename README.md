@@ -1,4 +1,4 @@
-# Haze - Bokeh visualization for interactive stack project
+# Haze - low-level Bokeh plotting for Hadui projects
 
 ## What's Haze
 
