@@ -71,7 +71,7 @@ uiPlot grpId plotAct =
     plotToUI :: PltGrp -> a -> WS.Connection -> UIO a
     plotToUI pg x wsc = do
         let uiMsg :: Text -> UIO ()
-            uiMsg msg = wsSendText
+            uiMsg msg = wsSendJson
                 wsc
                 [aesonQQ|{
 "type": "msg"
@@ -116,7 +116,7 @@ sendWindow pgid wsc pw = do
         !pcb2     = foldr compileLayout pcb1 $ pltLays pw
 -- send the data to browser for actual plotting
         !plotCode = utf8BuilderToText $ pcb2 <> "\n}\n"
-    wsSendText
+    wsSendJson
         wsc
         [aesonQQ|{
 "type": "call"
