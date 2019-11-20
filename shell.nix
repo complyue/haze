@@ -2,6 +2,6 @@
 with (import ./. { });
 haskellPackages.shellFor {
   packages = p: with p; [ haze ];
-  nativeBuildInputs = [ pkgs.cabal-install pkgs.hadui ];
+  nativeBuildInputs = [ pkgs.cabal-install ];
   #withHoogle = true;
 }
