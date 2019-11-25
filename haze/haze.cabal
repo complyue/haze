@@ -70,8 +70,10 @@ library
         hadui -any,
         websockets -any,
 
-        -- TODO use acceleratehs array compatible blob types
         vector -any,
+        accelerate >= 1.2,
+        -- accelerate-llvm-ptx >= 1.2,
+        repa >= 3.4,
         containers -any,
 
         rio -any,
