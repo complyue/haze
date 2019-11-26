@@ -18,6 +18,8 @@ import (
           };
         };
       in {
+        # haze tobe a top-level package
+        haze = pkgsWithHaze.haze;
         # override the Haskell package set at standard locations
         haskellPackages = pkgsWithHaze;
         haskell = super.haskell // {
