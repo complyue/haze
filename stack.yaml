@@ -5,12 +5,12 @@ packages:
 
 extra-deps:
   # to use a version of Hadui from github
-  - url: https://github.com/complyue/hadui/archive/0.1.0.2.tar.gz
-    subdirs:
-      - hadui
+#   - url: https://github.com/complyue/hadui/archive/0.1.0.2.tar.gz
+#     subdirs:
+#       - hadui
 
   # to use the version of Hadui checked out locally
-  #- ../hadui/hadui
+  - ../hadui/hadui
 
 # Stack's Nix integration is incompatible with Hadui,
 # let stack run in `nix-shell` with Nix provided GHC
