@@ -71,8 +71,6 @@ library
         websockets -any,
 
         vector -any,
-        accelerate >= 1.2,
-        -- accelerate-llvm-ptx >= 1.2,
         repa >= 3.4,
         containers -any,
 
